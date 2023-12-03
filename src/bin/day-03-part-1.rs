@@ -14,6 +14,8 @@ impl Number {
         let max_pos = self.end; // end is one past the last digit
         let min_line = self.line.saturating_sub(1);
         let max_line = self.line.saturating_add(1);
+
+        // check if any symbol is adjacent to this number
         symbols.iter().any(|symbol| {
             symbol.pos >= min_pos
                 && symbol.pos <= max_pos
@@ -37,11 +39,13 @@ struct Line {
 }
 
 fn main() {
+    let start = std::time::Instant::now();
     let lines = advent_of_code_2023::load_lines("./input/day-03-part-1.txt");
 
     let mut numbers = Vec::new();
     let mut symbols = Vec::new();
 
+    // parse the input into a data structure
     for (i, line) in lines.iter().enumerate() {
         let mut is_parsing = false;
         let mut number_buf = Number::default();
@@ -77,7 +81,7 @@ fn main() {
             }
         }
 
-        // check for number at the end of the line
+        // check for a number at the end of the line
         if is_parsing {
             number_buf.end = line.len();
             number_buf.number = (&line[number_buf.start..number_buf.end]).parse().unwrap();
@@ -86,12 +90,17 @@ fn main() {
         }
     }
 
-    println!(
-        "{}",
-        numbers
-            .iter()
-            .filter(|num| num.has_adjacent_symbol(&symbols))
-            .map(|num| num.number)
-            .sum::<u64>()
-    )
+    let result = numbers
+        .iter()
+        .filter_map(|num| {
+            if num.has_adjacent_symbol(&symbols) {
+                Some(num.number)
+            } else {
+                None
+            }
+        })
+        .sum::<u64>();
+
+    let elapsed = start.elapsed().as_secs_f64() * 1e3;
+    println!("{} ({:.3})", result, elapsed);
 }

@@ -16,8 +16,9 @@ struct Symbol {
 }
 
 impl Symbol {
+    /// Find all numbers adjacent to this gear using AABB intersection
     fn adjacent_numbers(&self, numbers: &[Number]) -> Vec<Number> {
-        // Symbol OBB
+        // symbol OBB
         let symbol_min_line = self.line.saturating_sub(1);
         let symbol_max_line = self.line.saturating_add(1);
         let symbol_min_pos = self.pos.saturating_sub(1);
@@ -26,13 +27,13 @@ impl Symbol {
         numbers
             .iter()
             .filter(|number| {
-                // Number OBB
+                // number AABB
                 let min_line = number.line.saturating_sub(1);
                 let max_line = number.line.saturating_add(1);
                 let min_pos = number.start.saturating_sub(1);
-                let max_pos = number.end; // end is one past the end
+                let max_pos = number.end; // number end is one past the end
 
-                // OBB intersection
+                // check for AABB intersection
                 symbol_max_line > min_line
                     && symbol_max_pos > min_pos
                     && symbol_min_line < max_line
@@ -50,11 +51,13 @@ struct Line {
 }
 
 fn main() {
+    let start = std::time::Instant::now();
     let lines = advent_of_code_2023::load_lines("./input/day-03-part-1.txt");
 
     let mut numbers = Vec::new();
     let mut symbols = Vec::new();
 
+    // parse the input into a data structure
     for (i, line) in lines.iter().enumerate() {
         let mut is_parsing = false;
         let mut number_buf = Number::default();
@@ -72,7 +75,7 @@ fn main() {
                 }
             } else {
                 if is_parsing {
-                    // stop parsing
+                    // finish parsing
                     is_parsing = false;
                     number_buf.end = j;
                     number_buf.number = (&line[number_buf.start..number_buf.end]).parse().unwrap();
@@ -90,7 +93,7 @@ fn main() {
             }
         }
 
-        // check for number at the end of the line
+        // check for a number at the end of the line
         if is_parsing {
             number_buf.end = line.len();
             number_buf.number = (&line[number_buf.start..number_buf.end]).parse().unwrap();
@@ -99,18 +102,18 @@ fn main() {
         }
     }
 
-    println!(
-        "{}",
-        symbols
-            .iter()
-            .filter_map(|sym| {
-                let adj = sym.adjacent_numbers(&numbers);
-                if adj.len() == 2 {
-                    Some(adj[0].number * adj[1].number)
-                } else {
-                    None
-                }
-            })
-            .sum::<u64>()
-    )
+    let result = symbols
+        .iter()
+        .filter_map(|sym| {
+            let adj = sym.adjacent_numbers(&numbers);
+            if adj.len() == 2 {
+                Some(adj[0].number * adj[1].number)
+            } else {
+                None
+            }
+        })
+        .sum::<u64>();
+
+    let elapsed = start.elapsed().as_secs_f64() * 1e3;
+    println!("{} ({:.3}ms)", result, elapsed);
 }
