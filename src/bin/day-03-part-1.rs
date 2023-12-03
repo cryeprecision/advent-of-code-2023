@@ -1,0 +1,97 @@
+#![allow(dead_code)]
+
+#[derive(Debug, Default)]
+struct Number {
+    line: usize,
+    start: usize,
+    end: usize,
+    number: u64,
+}
+
+impl Number {
+    fn has_adjacent_symbol(&self, symbols: &[Symbol]) -> bool {
+        let min_pos = self.start.saturating_sub(1);
+        let max_pos = self.end; // end is one past the last digit
+        let min_line = self.line.saturating_sub(1);
+        let max_line = self.line.saturating_add(1);
+        symbols.iter().any(|symbol| {
+            symbol.pos >= min_pos
+                && symbol.pos <= max_pos
+                && symbol.line >= min_line
+                && symbol.line <= max_line
+        })
+    }
+}
+
+#[derive(Debug, Default)]
+struct Symbol {
+    line: usize,
+    pos: usize,
+    character: char,
+}
+
+struct Line {
+    line: String,
+    numbers: Vec<Number>,
+    symbols: Vec<Symbol>,
+}
+
+fn main() {
+    let lines = advent_of_code_2023::load_lines("./input/day-03-part-1.txt");
+
+    let mut numbers = Vec::new();
+    let mut symbols = Vec::new();
+
+    for (i, line) in lines.iter().enumerate() {
+        let mut is_parsing = false;
+        let mut number_buf = Number::default();
+
+        for (j, c) in line.chars().enumerate() {
+            if c.is_ascii_digit() {
+                if is_parsing {
+                    // keep parsing
+                    continue;
+                } else {
+                    // start parsing
+                    is_parsing = true;
+                    number_buf.line = i;
+                    number_buf.start = j;
+                }
+            } else {
+                if is_parsing {
+                    // stop parsing
+                    is_parsing = false;
+                    number_buf.end = j;
+                    number_buf.number = (&line[number_buf.start..number_buf.end]).parse().unwrap();
+
+                    numbers.push(number_buf);
+                    number_buf = Number::default();
+                }
+                if c != '.' {
+                    symbols.push(Symbol {
+                        line: i,
+                        pos: j,
+                        character: c,
+                    });
+                }
+            }
+        }
+
+        // check for number at the end of the line
+        if is_parsing {
+            number_buf.end = line.len();
+            number_buf.number = (&line[number_buf.start..number_buf.end]).parse().unwrap();
+
+            numbers.push(number_buf);
+        }
+    }
+
+    println!(
+        "{}",
+        numbers
+            .iter()
+            .filter(|num| num.has_adjacent_symbol(&symbols))
+            .map(|num| num.number)
+            .sum::<u64>()
+    )
+}
