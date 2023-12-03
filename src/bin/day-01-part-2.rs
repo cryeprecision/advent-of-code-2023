@@ -29,7 +29,7 @@ fn main() {
         let first = (0..line.len())
             .find_map(|offset| {
                 for (k, v) in map {
-                    if (&line[offset..]).starts_with(k) {
+                    if line[offset..].starts_with(k) {
                         return Some(v);
                     } else {
                         continue;
@@ -43,7 +43,7 @@ fn main() {
             .rev()
             .find_map(|offset| {
                 for (k, v) in map {
-                    if (&line[offset..]).starts_with(k) {
+                    if line[offset..].starts_with(k) {
                         return Some(v);
                     } else {
                         continue;
@@ -53,7 +53,7 @@ fn main() {
             })
             .unwrap();
 
-        sum += first as u64 * 10 + last as u64;
+        sum += first * 10 + last;
     }
 
     println!("{}", sum);

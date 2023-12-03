@@ -66,7 +66,7 @@ fn main() {
                     // stop parsing
                     is_parsing = false;
                     number_buf.end = j;
-                    number_buf.number = (&line[number_buf.start..number_buf.end]).parse().unwrap();
+                    number_buf.number = line[number_buf.start..number_buf.end].parse().unwrap();
 
                     numbers.push(number_buf);
                     number_buf = Number::default();
@@ -84,7 +84,7 @@ fn main() {
         // check for a number at the end of the line
         if is_parsing {
             number_buf.end = line.len();
-            number_buf.number = (&line[number_buf.start..number_buf.end]).parse().unwrap();
+            number_buf.number = line[number_buf.start..number_buf.end].parse().unwrap();
 
             numbers.push(number_buf);
         }
