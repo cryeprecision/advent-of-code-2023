@@ -1,62 +1,64 @@
+fn parse_digit(str: &str) -> Option<u64> {
+    // check for single character digit first
+    let c = str.chars().next()?;
+    if c.is_ascii_digit() {
+        return Some((c as u8 - b'0') as u64);
+    }
+
+    if str.len() < 3 {
+        return None;
+    }
+    match &str[..3] {
+        "one" => return Some(1),
+        "two" => return Some(2),
+        "six" => return Some(6),
+        _ => (),
+    }
+
+    if str.len() < 4 {
+        return None;
+    }
+    match &str[..4] {
+        "zero" => return Some(0),
+        "four" => return Some(4),
+        "five" => return Some(5),
+        "nine" => return Some(9),
+        _ => (),
+    }
+
+    if str.len() < 5 {
+        return None;
+    }
+    match &str[..5] {
+        "three" => return Some(3),
+        "seven" => return Some(7),
+        "eight" => return Some(8),
+        _ => (),
+    }
+
+    None
+}
+
 fn main() {
     let input = advent_of_code_2023::load_input("day-01.txt");
     let start = std::time::Instant::now();
 
-    let map: [(&'static str, u64); 20] = [
-        ("0", 0),
-        ("1", 1),
-        ("2", 2),
-        ("3", 3),
-        ("4", 4),
-        ("5", 5),
-        ("6", 6),
-        ("7", 7),
-        ("8", 8),
-        ("9", 9),
-        ("zero", 0),
-        ("one", 1),
-        ("two", 2),
-        ("three", 3),
-        ("four", 4),
-        ("five", 5),
-        ("six", 6),
-        ("seven", 7),
-        ("eight", 8),
-        ("nine", 9),
-    ];
+    let result = input
+        .lines()
+        .map(|line| {
+            let first = (0..line.len())
+                .find_map(|offset| parse_digit(&line[offset..]))
+                .unwrap();
 
-    let mut sum = 0u64;
-    for line in input.lines() {
-        let first = (0..line.len())
-            .find_map(|offset| {
-                for (k, v) in map {
-                    if line[offset..].starts_with(k) {
-                        return Some(v);
-                    } else {
-                        continue;
-                    }
-                }
-                None
-            })
-            .unwrap();
+            let last = (0..line.len())
+                .rev()
+                .find_map(|offset| parse_digit(&line[offset..]))
+                .unwrap();
 
-        let last = (0..line.len())
-            .rev()
-            .find_map(|offset| {
-                for (k, v) in map {
-                    if line[offset..].starts_with(k) {
-                        return Some(v);
-                    } else {
-                        continue;
-                    }
-                }
-                None
-            })
-            .unwrap();
-
-        sum += first * 10 + last;
-    }
+            first * 10 + last
+        })
+        .sum::<u64>();
 
     let elapsed = start.elapsed().as_secs_f64() * 1e3;
-    println!("{} ({:.3}ms)", sum, elapsed);
+    println!("{} ({:.3}ms)", result, elapsed);
 }
