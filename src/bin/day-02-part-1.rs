@@ -30,7 +30,10 @@ impl Game {
 }
 
 fn main() {
-    let games = advent_of_code_2023::load_input!("day-02.txt")
+    let input = advent_of_code_2023::load_input("day-02.txt");
+    let start = std::time::Instant::now();
+
+    let games = input
         .lines()
         .map(|line| {
             // Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
@@ -60,7 +63,7 @@ fn main() {
         })
         .collect::<Vec<_>>();
 
-    let sum_of_impossible_ids = games.iter().fold(0usize, |acc, game| {
+    let solution = games.iter().fold(0usize, |acc, game| {
         if game.is_possible(&MAX_CUBES) {
             acc + game.id
         } else {
@@ -68,5 +71,6 @@ fn main() {
         }
     });
 
-    println!("{}", sum_of_impossible_ids);
+    let elapsed = start.elapsed().as_secs_f64() * 1e3;
+    println!("{} ({:.3}ms)", solution, elapsed);
 }

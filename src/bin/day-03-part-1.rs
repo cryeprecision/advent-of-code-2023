@@ -39,14 +39,14 @@ struct Line {
 }
 
 fn main() {
+    let input = advent_of_code_2023::load_input("day-03.txt");
     let start = std::time::Instant::now();
-    let lines = advent_of_code_2023::load_input!("day-03.txt").lines();
 
     let mut numbers = Vec::new();
     let mut symbols = Vec::new();
 
     // parse the input into a data structure
-    for (i, line) in lines.enumerate() {
+    for (i, line) in input.lines().enumerate() {
         let mut is_parsing = false;
         let mut number_buf = Number::default();
 

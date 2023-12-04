@@ -1,5 +1,6 @@
 fn main() {
-    let input = advent_of_code_2023::load_input!("day-01.txt");
+    let input = advent_of_code_2023::load_input("day-01.txt");
+    let start = std::time::Instant::now();
 
     let mut sum = 0u64;
     for line in input.lines() {
@@ -9,5 +10,6 @@ fn main() {
         sum += first as u64 * 10 + last as u64;
     }
 
-    println!("{}", sum);
+    let elapsed = start.elapsed().as_secs_f64() * 1e3;
+    println!("{} ({:.3}ms)", sum, elapsed);
 }

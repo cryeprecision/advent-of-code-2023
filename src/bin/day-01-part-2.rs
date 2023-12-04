@@ -1,5 +1,6 @@
 fn main() {
-    let input = advent_of_code_2023::load_input!("day-01.txt");
+    let input = advent_of_code_2023::load_input("day-01.txt");
+    let start = std::time::Instant::now();
 
     let map: [(&'static str, u64); 20] = [
         ("0", 0),
@@ -56,5 +57,6 @@ fn main() {
         sum += first * 10 + last;
     }
 
-    println!("{}", sum);
+    let elapsed = start.elapsed().as_secs_f64() * 1e3;
+    println!("{} ({:.3}ms)", sum, elapsed);
 }
