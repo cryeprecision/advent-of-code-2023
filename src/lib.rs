@@ -1,4 +1,6 @@
-pub fn load_lines(path: &str) -> Vec<String> {
-    let content = std::fs::read_to_string(path).unwrap();
-    content.trim_end().lines().map(String::from).collect()
+#[macro_export]
+macro_rules! load_input {
+    ($filename:literal) => {
+        include_str!(concat!("../../input/", $filename)).trim_end()
+    };
 }

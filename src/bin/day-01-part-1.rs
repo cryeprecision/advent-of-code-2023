@@ -1,8 +1,8 @@
 fn main() {
-    let input = std::fs::read_to_string("./input/day-01-part-1.txt").unwrap();
+    let input = advent_of_code_2023::load_input!("day-01.txt");
 
     let mut sum = 0u64;
-    for line in input.trim().lines() {
+    for line in input.lines() {
         let first = line.chars().find(char::is_ascii_digit).unwrap() as u8 - b'0';
         let last = line.chars().rev().find(char::is_ascii_digit).unwrap() as u8 - b'0';
 

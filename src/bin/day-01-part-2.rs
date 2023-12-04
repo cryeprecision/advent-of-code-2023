@@ -1,5 +1,5 @@
 fn main() {
-    let input = std::fs::read_to_string("./input/day-01-part-2.txt").unwrap();
+    let input = advent_of_code_2023::load_input!("day-01.txt");
 
     let map: [(&'static str, u64); 20] = [
         ("0", 0),
@@ -25,7 +25,7 @@ fn main() {
     ];
 
     let mut sum = 0u64;
-    for line in input.trim().lines() {
+    for line in input.lines() {
         let first = (0..line.len())
             .find_map(|offset| {
                 for (k, v) in map {

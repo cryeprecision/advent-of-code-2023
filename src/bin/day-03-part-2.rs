@@ -52,13 +52,13 @@ struct Line {
 
 fn main() {
     let start = std::time::Instant::now();
-    let lines = advent_of_code_2023::load_lines("./input/day-03-part-1.txt");
+    let lines = advent_of_code_2023::load_input!("day-03.txt").lines();
 
     let mut numbers = Vec::new();
     let mut symbols = Vec::new();
 
     // parse the input into a data structure
-    for (i, line) in lines.iter().enumerate() {
+    for (i, line) in lines.enumerate() {
         let mut is_parsing = false;
         let mut number_buf = Number::default();
 

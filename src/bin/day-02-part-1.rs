@@ -30,11 +30,10 @@ impl Game {
 }
 
 fn main() {
-    let games = advent_of_code_2023::load_lines("./input/day-02-part-1.txt")
-        .into_iter()
+    let games = advent_of_code_2023::load_input!("day-02.txt")
+        .lines()
         .map(|line| {
             // Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
-            let line = line.as_str();
             let (_, line) = line.split_once("Game ").unwrap();
             let (id, line) = line.split_once(": ").unwrap();
             let id = id.parse::<usize>().unwrap();

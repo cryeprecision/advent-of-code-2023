@@ -18,10 +18,9 @@ impl Card {
 
 fn main() {
     let start = std::time::Instant::now();
-    let mut cards = advent_of_code_2023::load_lines("./input/day-04-part-2.txt")
-        .into_iter()
+    let mut cards = advent_of_code_2023::load_input!("day-04.txt")
+        .lines()
         .map(|line| {
-            let line = line.as_str();
             let (_, line) = line.split_once("Card").unwrap();
             let (id, line) = line.split_once(':').unwrap();
             let id = id.trim_start().parse::<u64>().unwrap();
