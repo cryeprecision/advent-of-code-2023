@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use smallvec::{smallvec, SmallVec};
 use std::ops::Range;
 
 /// - Any source numbers that aren't mapped correspond to the same destination number.
@@ -15,7 +16,7 @@ trait Set: Sized {
     fn intersect(&self, rhs: &Self) -> Option<Self>;
 
     /// Subtract rhs from self.
-    fn subtract(&self, rhs: &Self) -> Vec<Self>;
+    fn subtract(&self, rhs: &Self) -> SmallVec<[Self; 2]>;
 }
 
 impl Set for Range<u64> {
@@ -29,26 +30,26 @@ impl Set for Range<u64> {
             Some(start..end)
         }
     }
-    fn subtract(&self, rhs: &Self) -> Vec<Self> {
+    fn subtract(&self, rhs: &Self) -> SmallVec<[Self; 2]> {
         let Some(intersection) = self.intersect(rhs) else {
             // the sets don't overlap
-            return vec![self.clone()];
+            return smallvec![self.clone()];
         };
 
         if &intersection == self {
             // rhs fully covers self
-            return Vec::new();
+            return smallvec![];
         }
 
         if rhs.start > self.start && rhs.end < self.end {
             // rhs is fully contained in self
-            vec![self.start..rhs.start, rhs.end..self.end]
+            smallvec![self.start..rhs.start, rhs.end..self.end]
         } else if rhs.end > self.start && rhs.start <= self.start {
             // rhs overlaps self on the left side
-            vec![rhs.end..self.end]
+            smallvec![rhs.end..self.end]
         } else if rhs.start < self.end && rhs.end >= self.end {
             // rhs overlaps self on the right side
-            vec![self.start..rhs.start]
+            smallvec![self.start..rhs.start]
         } else {
             unreachable!(
                 "all cases should have been covered by the code above\n\
@@ -64,6 +65,7 @@ impl Set for Range<u64> {
 #[cfg(test)]
 mod set_test {
     use super::Set;
+    use smallvec::smallvec;
 
     #[test]
     fn intersect() {
@@ -79,15 +81,24 @@ mod set_test {
 
     #[test]
     fn subtract() {
-        assert_eq!((1..6).subtract(&(10..16)), vec![1..6]);
-        assert_eq!((1..6).subtract(&(0..3)), vec![3..6]);
-        assert_eq!((1..6).subtract(&(4..7)), vec![1..4]);
-        assert_eq!((1..6).subtract(&(3..5)), vec![1..3, 5..6]);
-        assert_eq!((1..6).subtract(&(1..6)), vec![]);
-        assert_eq!((1..6).subtract(&(1..1)), vec![1..6]);
-        assert_eq!((1..6).subtract(&(1..2)), vec![2..6]);
-        assert_eq!((1..6).subtract(&(5..6)), vec![1..5]);
-        assert_eq!((1..6).subtract(&(6..6)), vec![1..6]);
+        macro_rules! test_eq {
+            ($base:expr, $sub:expr, [$($equals:expr),*]) => {{
+                use smallvec::{smallvec, SmallVec};
+                use super::Range;
+                let expected: SmallVec::<[Range<u64>; 2]> = smallvec![$($equals),*];
+                assert_eq!(($base).subtract(&($sub)), expected);
+            }};
+        }
+
+        test_eq!(1..6, 10..16, [1..6]);
+        test_eq!(1..6, 0..3, [3..6]);
+        test_eq!(1..6, 4..7, [1..4]);
+        test_eq!(1..6, 3..5, [1..3, 5..6]);
+        test_eq!(1..6, 1..6, []);
+        test_eq!(1..6, 1..1, [1..6]);
+        test_eq!(1..6, 1..2, [2..6]);
+        test_eq!(1..6, 5..6, [1..5]);
+        test_eq!(1..6, 6..6, [1..6]);
     }
 }
 
@@ -105,129 +116,51 @@ impl MapRange {
         self.dst_start..self.dst_end()
     }
 
-    fn map(&self, range: &Range<u64>) -> Vec<Range<u64>> {
-        // _ _ 3 4 5 6 _ _ |
-        // 1 _ _ _ _ _ _ _ | no overlap
-        // _ 2 3 _ _ _ _ _ | partial overlap
-        // _ _ _ 4 5 _ _ _ | full overlap
-        // _ _ _ _ _ 6 7 _ | partial overlap
-        // _ _ _ _ _ _ _ 8 | no overlap
-        // 1 2 3 4 5 6 7 8 | all of the above
-
-        let mapped_range = self.src_range();
-
-        let mut to_map = vec![range.clone()];
-        let mut mapped = Vec::<Range<u64>>::new();
-
-        loop {
-            let Some(next) = to_map.pop() else {
-                break;
-            };
-
-            if let Some(intersection) = mapped_range.intersect(&next) {
-                let mapped_start = (intersection.start + self.dst_start) - self.src_start;
-                let mapped_end = (intersection.end + self.dst_start) - self.src_start;
-
-                // append the mapped range
-                mapped.push(mapped_start..mapped_end);
-                // add the unmapped parts back to the list
-                to_map.extend(next.subtract(&intersection));
-            }
+    /// Returns: `(MappedRange, UnmappedRanges)`
+    ///
+    /// If there is an intersection with the range this maps, that part will be mapped
+    /// and the unmapped part(s) will be put into the second tuple element.
+    fn map(&self, range: &Range<u64>) -> (Option<Range<u64>>, SmallVec<[Range<u64>; 2]>) {
+        if let Some(intersection) = self.src_range().intersect(range) {
+            let mapped_start = (intersection.start + self.dst_start) - self.src_start;
+            let mapped_end = (intersection.end + self.dst_start) - self.src_start;
+            let unmapped = range.subtract(&intersection);
+            (Some(mapped_start..mapped_end), unmapped)
+        } else {
+            (None, smallvec![range.clone()])
         }
-
-        eprintln!(
-            "MapRange::map\n\
-                \trange: {:?}\n\
-                \tsrc: {:?}\n\
-                \tdst: {:?}\n\
-                \tmapped: {:?}",
-            range,
-            self.src_range(),
-            self.dst_range(),
-            mapped,
-        );
-
-        mapped
-    }
-}
-
-#[cfg(test)]
-mod map_range_test {
-    use crate::{Map, MapRange};
-
-    #[test]
-    fn map_range() {
-        let seeds = vec![79..(79 + 14), 55..(55 + 13)];
-        let seed_to_soil = Map {
-            name: "seed-to-soil".to_string(),
-            ranges: vec![
-                MapRange {
-                    dst_start: 50,
-                    src_start: 98,
-                    len: 2,
-                },
-                MapRange {
-                    dst_start: 52,
-                    src_start: 50,
-                    len: 48,
-                },
-            ],
-        };
-        let soil_to_fert = Map {
-            name: "soil-to-fertilizer".to_string(),
-            ranges: vec![
-                MapRange {
-                    dst_start: 0,
-                    src_start: 15,
-                    len: 37,
-                },
-                MapRange {
-                    dst_start: 32,
-                    src_start: 52,
-                    len: 2,
-                },
-                MapRange {
-                    dst_start: 39,
-                    src_start: 0,
-                    len: 15,
-                },
-            ],
-        };
-
-        let mut soils = seeds
-            .iter()
-            .map(|seed| seed_to_soil.map(seed))
-            .flatten()
-            .collect::<Vec<_>>();
-        soils.sort_unstable_by_key(|r| (r.start, r.end));
-
-        let mut ferts = soils
-            .iter()
-            .map(|soil| soil_to_fert.map(soil))
-            .flatten()
-            .collect::<Vec<_>>();
-        ferts.sort_unstable_by_key(|r| (r.start, r.end));
-
-        println!("seeds: {:?}", seeds);
-        println!("soils: {:?}", soils);
-        println!("ferts: {:?}", ferts);
     }
 }
 
 #[derive(Debug, Default)]
 struct Map {
     name: String,
-    ranges: Vec<MapRange>,
+    mappings: Vec<MapRange>,
 }
 
 impl Map {
+    /// Tries to map as much as possible from the seeds
+    ///
+    /// Returns: `(MappedSeeds, UnmappedSeeds)`
     fn map(&self, seeds: &Range<u64>) -> Vec<Range<u64>> {
         let mut mapped = vec![];
+        let mut unmapped = vec![seeds.clone()];
+        let mut unmapped_temp = vec![];
 
-        for map in &self.ranges {
-            mapped.extend(map.map(seeds));
+        for map in &self.mappings {
+            for seed in unmapped.iter() {
+                let (mapped_range, unmapped_ranges) = map.map(seed);
+
+                if let Some(mapped_range) = mapped_range {
+                    mapped.push(mapped_range);
+                }
+                unmapped_temp.extend(unmapped_ranges);
+            }
+            unmapped.clear();
+            std::mem::swap(&mut unmapped, &mut unmapped_temp);
         }
 
+        mapped.extend(unmapped);
         mapped
     }
 }
@@ -291,32 +224,27 @@ fn main() {
                 });
             }
 
-            ranges.sort_unstable_by_key(|map_range| map_range.src_start);
+            ranges.sort_unstable_by_key(|r| (r.src_start, r.src_end()));
 
             maps.push(Map {
                 name: name.to_string(),
-                ranges,
+                mappings: ranges,
             });
         }
 
         Almanac { seeds, maps }
     };
 
-    let mut buffer = almanac.seeds.clone();
-    for map in &almanac.maps {
-        let mut next = buffer
-            .iter()
-            .map(|range| map.map(range))
-            .flatten()
-            .collect::<Vec<_>>();
-
-        next.sort_unstable_by_key(|r| (r.start, r.end));
-        next.dedup_by_key(|r| (r.start, r.end));
-
-        buffer = next;
-    }
-
-    let result = buffer.iter().map(|range| range.start).min().unwrap();
+    let result = {
+        let mut ranges = almanac.seeds.clone();
+        for map in &almanac.maps {
+            ranges = ranges
+                .iter()
+                .flat_map(|range| map.map(range))
+                .collect::<Vec<_>>();
+        }
+        ranges.iter().map(|r| r.start).min().unwrap()
+    };
 
     let elapsed = start.elapsed().as_secs_f64() * 1e3;
     println!("{} ({:.3}ms)", result, elapsed);
