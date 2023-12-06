@@ -1,8 +1,8 @@
 cargo build -q --release
 cargo build -q
 
-$files_release = Get-ChildItem -Path "./target/release/" -Include "*.exe" -Depth 0
-$files_debug = Get-ChildItem -Path "./target/debug/" -Include "*.exe" -Depth 0
+$files_release = Get-ChildItem -Path "./target/release/day-*-part-*.exe"
+$files_debug = Get-ChildItem -Path "./target/debug/day-*-part-*.exe"
 
 Write-Host "-> Release <-"
 for ($i = 0; $i -lt $files_release.Count; $i += 1) {
