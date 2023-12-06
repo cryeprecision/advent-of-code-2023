@@ -34,7 +34,7 @@ impl Challenge {
     pub fn finish<T: Display>(self, solution: T) {
         let elapsed_ms = self.elapsed_ms();
         println!(
-            "[Day-{:02} | Part-{:02} | {:.3}ms] Solution: {}",
+            "[Day-{:02} | Part-{:02} | {:>6.3}ms] Solution: {}",
             self.day, self.part, elapsed_ms, solution
         );
     }
