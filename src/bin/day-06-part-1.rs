@@ -42,7 +42,8 @@ fn main() {
     let solution = races
         .iter()
         .map(|race| race.possible_solves())
-        .fold(1, |acc, next| acc * next);
+        .reduce(|acc, next| acc * next)
+        .unwrap();
 
     challenge.finish(solution);
 }

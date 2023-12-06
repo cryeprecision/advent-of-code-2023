@@ -10,29 +10,17 @@ impl Race {
         let record = self.record as f64;
 
         let root = ((time.powi(2) / 4.0) - record).sqrt();
-        let t_1 = (time / 2.0) + root;
-        let t_2 = (time / 2.0) - root;
 
-        [t_1.min(t_2), t_1.max(t_2)]
-    }
-
-    fn is_solution(&self, hold_time: u64) -> bool {
-        (self.time - hold_time) * hold_time > self.record
+        [(time / 2.0) - root, (time / 2.0) + root]
     }
 
     fn possible_solves(&self) -> u64 {
         let [start, end] = self.zero_crossings();
-        let mut start = start.ceil() as u64;
-        let mut end = end.floor() as u64;
 
-        if !self.is_solution(start) {
-            start += 1;
-        }
-        if !self.is_solution(end) {
-            end -= 1;
-        }
+        let start = start.floor() as u64;
+        let end = end.ceil() as u64;
 
-        end - start + 1
+        end - start - 1
     }
 }
 
@@ -49,15 +37,17 @@ fn main() {
             .split_whitespace()
             .skip(1)
             .for_each(|num| parse_buf.push_str(num));
-        let time = parse_buf.parse::<u64>().unwrap();
 
+        let time = parse_buf.parse::<u64>().unwrap();
         parse_buf.clear();
+
         lines
             .next()
             .unwrap()
             .split_whitespace()
             .skip(1)
             .for_each(|num| parse_buf.push_str(num));
+
         let record = parse_buf.parse::<u64>().unwrap();
 
         Race { time, record }
