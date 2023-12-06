@@ -32,11 +32,10 @@ impl Game {
 }
 
 fn main() {
-    let input = advent_of_code_2023::load_input("day-02.txt");
-    let start = std::time::Instant::now();
+    let challenge = advent_of_code_2023::Challenge::start(2, 2);
 
-    let games = input
-        .lines()
+    let games = challenge
+        .input_lines()
         .map(|line| {
             // Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
             let (_, line) = line.split_once("Game ").unwrap();
@@ -69,6 +68,5 @@ fn main() {
         .iter()
         .fold(0usize, |acc, game| acc + game.min_cube_set().pow());
 
-    let elapsed = start.elapsed().as_secs_f64() * 1e3;
-    println!("{} ({:.3}ms)", solution, elapsed);
+    challenge.finish(solution);
 }

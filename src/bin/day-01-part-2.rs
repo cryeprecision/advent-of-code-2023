@@ -40,11 +40,10 @@ fn parse_digit(str: &str) -> Option<u64> {
 }
 
 fn main() {
-    let input = advent_of_code_2023::load_input("day-01.txt");
-    let start = std::time::Instant::now();
+    let challenge = advent_of_code_2023::Challenge::start(1, 2);
 
-    let result = input
-        .lines()
+    let solution = challenge
+        .input_lines()
         .map(|line| {
             let first = (0..line.len())
                 .find_map(|offset| parse_digit(&line[offset..]))
@@ -59,6 +58,5 @@ fn main() {
         })
         .sum::<u64>();
 
-    let elapsed = start.elapsed().as_secs_f64() * 1e3;
-    println!("{} ({:.3}ms)", result, elapsed);
+    challenge.finish(solution);
 }

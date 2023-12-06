@@ -23,11 +23,10 @@ impl Card {
 }
 
 fn main() {
-    let input = advent_of_code_2023::load_input("day-04.txt");
-    let start = std::time::Instant::now();
+    let challenge = advent_of_code_2023::Challenge::start(4, 1);
 
-    let cards = input
-        .lines()
+    let cards = challenge
+        .input_lines()
         .map(|line| {
             let (_, line) = line.split_once("Card").unwrap();
             let (id, line) = line.split_once(':').unwrap();
@@ -57,8 +56,7 @@ fn main() {
         })
         .collect::<Vec<_>>();
 
-    let result = cards.iter().map(|card| card.points()).sum::<u64>();
-    let elapsed = start.elapsed().as_secs_f64() * 1e3;
+    let solution = cards.iter().map(|card| card.points()).sum::<u64>();
 
-    println!("{} ({:.3}ms)", result, elapsed);
+    challenge.finish(solution);
 }

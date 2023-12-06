@@ -49,11 +49,10 @@ struct Almanac {
 }
 
 fn main() {
-    let input = advent_of_code_2023::load_input("day-05.txt");
-    let start = std::time::Instant::now();
+    let challenge = advent_of_code_2023::Challenge::start(5, 1);
 
     let almanac = {
-        let mut lines = input.lines();
+        let mut lines = challenge.input_lines();
 
         let seeds_line = lines.next().unwrap();
         let (_, seeds_list) = seeds_line.split_once("seeds: ").unwrap();
@@ -102,13 +101,12 @@ fn main() {
         Almanac { seeds, maps }
     };
 
-    let result = almanac
+    let solution = almanac
         .seeds
         .iter()
         .map(|seed| almanac.maps.iter().fold(*seed, |acc, next| next.map(acc)))
         .min()
         .unwrap();
 
-    let elapsed = start.elapsed().as_secs_f64() * 1e3;
-    println!("{} ({:.3}ms)", result, elapsed);
+    challenge.finish(solution);
 }

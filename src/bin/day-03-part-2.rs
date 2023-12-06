@@ -51,14 +51,13 @@ struct Line {
 }
 
 fn main() {
-    let input = advent_of_code_2023::load_input("day-03.txt");
-    let start = std::time::Instant::now();
+    let challenge = advent_of_code_2023::Challenge::start(3, 2);
 
     let mut numbers = Vec::new();
     let mut symbols = Vec::new();
 
     // parse the input into a data structure
-    for (i, line) in input.lines().enumerate() {
+    for (i, line) in challenge.input_lines().enumerate() {
         let mut is_parsing = false;
         let mut number_buf = Number::default();
 
@@ -102,7 +101,7 @@ fn main() {
         }
     }
 
-    let result = symbols
+    let solution = symbols
         .iter()
         .filter_map(|sym| {
             let adj = sym.adjacent_numbers(&numbers);
@@ -114,6 +113,5 @@ fn main() {
         })
         .sum::<u64>();
 
-    let elapsed = start.elapsed().as_secs_f64() * 1e3;
-    println!("{} ({:.3}ms)", result, elapsed);
+    challenge.finish(solution);
 }

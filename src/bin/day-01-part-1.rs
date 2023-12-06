@@ -1,9 +1,8 @@
 fn main() {
-    let input = advent_of_code_2023::load_input("day-01.txt");
-    let start = std::time::Instant::now();
+    let challenge = advent_of_code_2023::Challenge::start(1, 1);
 
-    let result = input
-        .lines()
+    let solution = challenge
+        .input_lines()
         .map(|line| {
             let first = line.chars().find(char::is_ascii_digit).unwrap() as u8 - b'0';
             let last = line.chars().rev().find(char::is_ascii_digit).unwrap() as u8 - b'0';
@@ -11,6 +10,5 @@ fn main() {
         })
         .sum::<u64>();
 
-    let elapsed = start.elapsed().as_secs_f64() * 1e3;
-    println!("{} ({:.3}ms)", result, elapsed);
+    challenge.finish(solution);
 }

@@ -1,11 +1,9 @@
 use std::{fmt::Display, path::PathBuf, str::Lines, time::Instant};
 
 /// Read the file at `./input/<filename>` into a string and then leak the memory
-pub fn load_input(filename: &str) -> &'static str {
+pub fn load_input(filename: &str) -> std::io::Result<&'static str> {
     let path: PathBuf = ["./input", filename].iter().collect();
-    std::fs::read_to_string(path)
-        .expect("input file should exist and contain valid utf-8")
-        .leak()
+    Ok(std::fs::read_to_string(path)?.leak())
 }
 
 pub struct Challenge {
@@ -18,7 +16,10 @@ pub struct Challenge {
 impl Challenge {
     /// Start the challenge by loading the input and recording the current time.
     pub fn start(day: usize, part: usize) -> Challenge {
-        let input = load_input(&format!("day-{:02}.txt", day));
+        let input = load_input(&format!("day-{:02}-{:02}.txt", day, part))
+            .or_else(|_| load_input(&format!("day-{:02}.txt", day)))
+            .unwrap();
+
         let start = Instant::now();
 
         Challenge {
