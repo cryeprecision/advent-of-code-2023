@@ -9,19 +9,23 @@ struct Number {
 }
 
 impl Number {
-    fn has_adjacent_symbol(&self, symbols: &[Symbol]) -> bool {
-        let min_pos = self.start.saturating_sub(1);
-        let max_pos = self.end; // end is one past the last digit
-        let min_line = self.line.saturating_sub(1);
-        let max_line = self.line.saturating_add(1);
+    /// Check if the symbol is adjacent to this number
+    fn is_adjacent_to(&self, symbol: &Symbol) -> bool {
+        self.line.abs_diff(symbol.line) <= 1
+            && self.start <= symbol.pos + 1
+            && self.end >= symbol.pos
+    }
 
-        // check if any symbol is adjacent to this number
-        symbols.iter().any(|symbol| {
-            symbol.pos >= min_pos
-                && symbol.pos <= max_pos
-                && symbol.line >= min_line
-                && symbol.line <= max_line
-        })
+    /// Check if this number has at least one adjacent symbol
+    fn has_adjacent_symbol(&self, symbols: &[Symbol]) -> bool {
+        // start of possible matches by line number
+        let start = symbols.partition_point(|symbol| symbol.line + 1 < self.line);
+        // end of possible matches by line number
+        let end = symbols.partition_point(|symbol| symbol.line <= self.line + 1);
+
+        symbols[start..end]
+            .iter()
+            .any(|symbol| self.is_adjacent_to(symbol))
     }
 }
 

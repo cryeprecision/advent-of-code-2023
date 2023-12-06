@@ -16,29 +16,24 @@ struct Symbol {
 }
 
 impl Symbol {
-    /// Find all numbers adjacent to this gear using AABB intersection
+    /// Check if the number is adjacent to this symbol
+    fn is_adjacent_to(&self, number: &Number) -> bool {
+        self.line.abs_diff(number.line) <= 1
+            && self.pos + 1 >= number.start
+            && self.pos <= number.end
+    }
+
+    /// Find all numbers adjacent to this gear
     fn adjacent_numbers(&self, numbers: &[Number]) -> Vec<Number> {
-        // symbol OBB
-        let symbol_min_line = self.line.saturating_sub(1);
-        let symbol_max_line = self.line.saturating_add(1);
-        let symbol_min_pos = self.pos.saturating_sub(1);
-        let symbol_max_pos = self.pos.saturating_add(1);
+        // start of possible matches by line number
+        let start = numbers.partition_point(|number| number.line + 1 < self.line);
+        // end of possible matches by line number
+        let end = numbers.partition_point(|number| number.line <= self.line + 1);
 
-        numbers
+        // only check numbers which could be adjacent based on the line number
+        numbers[start..end]
             .iter()
-            .filter(|number| {
-                // number AABB
-                let min_line = number.line.saturating_sub(1);
-                let max_line = number.line.saturating_add(1);
-                let min_pos = number.start.saturating_sub(1);
-                let max_pos = number.end; // number end is one past the end
-
-                // check for AABB intersection
-                symbol_max_line > min_line
-                    && symbol_max_pos > min_pos
-                    && symbol_min_line < max_line
-                    && symbol_min_pos < max_pos
-            })
+            .filter(|number| self.is_adjacent_to(number))
             .cloned()
             .collect()
     }
@@ -101,17 +96,17 @@ fn main() {
         }
     }
 
-    let solution = symbols
-        .iter()
-        .filter_map(|sym| {
-            let adj = sym.adjacent_numbers(&numbers);
-            if adj.len() == 2 {
-                Some(adj[0].number * adj[1].number)
-            } else {
-                None
-            }
-        })
-        .sum::<u64>();
+    // remove all symbols we don't care about
+    symbols.retain(|symbol| symbol.character == '*');
+
+    let solution = symbols.iter().fold(0, |acc, next| {
+        let adj = next.adjacent_numbers(&numbers);
+        if adj.len() == 2 {
+            acc + adj[0].number * adj[1].number
+        } else {
+            acc
+        }
+    });
 
     challenge.finish(solution);
 }
