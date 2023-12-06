@@ -1,4 +1,9 @@
-use std::{fmt::Display, path::PathBuf, str::Lines, time::Instant};
+use std::{
+    fmt::{Debug, Display},
+    path::PathBuf,
+    str::{FromStr, Lines},
+    time::Instant,
+};
 
 /// Read the file at `./input/<filename>` into a string and then leak the memory
 pub fn load_input(filename: &str) -> std::io::Result<&'static str> {
@@ -6,19 +11,71 @@ pub fn load_input(filename: &str) -> std::io::Result<&'static str> {
     Ok(std::fs::read_to_string(path)?.leak())
 }
 
+#[derive(Debug, Default)]
+pub struct Solution {
+    part_1: Option<&'static str>,
+    part_2: Option<&'static str>,
+}
+
+impl Solution {
+    pub fn check<T>(&self, part: usize, solution: &T) -> char
+    where
+        T: FromStr + Eq,
+        T::Err: Debug,
+    {
+        let real_solution: Option<T> = match part {
+            1 => self.part_1,
+            2 => self.part_2,
+            n => panic!("no solution for part {}", n),
+        }
+        .map(|opt| opt.parse().unwrap());
+
+        match (real_solution, solution) {
+            (Some(s1), s2) if &s1 == s2 => '✅',
+            (Some(_), _) => '❌',
+            (None, _) => '❔',
+        }
+    }
+}
+
 pub struct Challenge {
     day: usize,
     part: usize,
     start: Instant,
     input: &'static str,
+    solution: Solution,
 }
 
 impl Challenge {
     /// Start the challenge by loading the input and recording the current time.
     pub fn start(day: usize, part: usize) -> Challenge {
+        assert!(day >= 1 && day <= 24, "day {} is out of range", day);
+        assert!(part >= 1 && part <= 2, "part {} is out of range", part);
+
+        // load the puzzle input
         let input = load_input(&format!("day-{:02}-{:02}.txt", day, part))
             .or_else(|_| load_input(&format!("day-{:02}.txt", day)))
             .unwrap();
+
+        // load the corresponding solutions
+        let solution = load_input("solutions.txt")
+            .map(|text| {
+                let Some(line) = text.lines().nth(day - 1) else {
+                    return Solution::default();
+                };
+
+                match line.split_once(' ') {
+                    Some((part_1, part_2)) => Solution {
+                        part_1: Some(part_1),
+                        part_2: Some(part_2),
+                    },
+                    None => Solution {
+                        part_1: Some(line),
+                        part_2: None,
+                    },
+                }
+            })
+            .unwrap_or(Solution::default());
 
         let start = Instant::now();
 
@@ -27,15 +84,25 @@ impl Challenge {
             part,
             start,
             input,
+            solution,
         }
     }
 
     /// Finish the callenge, displaying the solution and some metadata.
-    pub fn finish<T: Display>(self, solution: T) {
+    pub fn finish<T>(self, solution: T)
+    where
+        T: Display + Eq + FromStr,
+        T::Err: Debug,
+    {
         let elapsed_ms = self.elapsed_ms();
+
         println!(
-            "[Day-{:02} | Part-{:02} | {:>6.3}ms] Solution: {}",
-            self.day, self.part, elapsed_ms, solution
+            "[Day-{:02} | Part-{:02} | {:>6.3}ms] Solution: {} ({})",
+            self.day,
+            self.part,
+            elapsed_ms,
+            solution,
+            self.solution.check(self.part, &solution)
         );
     }
 
