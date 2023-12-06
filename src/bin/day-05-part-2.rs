@@ -64,41 +64,45 @@ impl Set for Range<u64> {
 
 #[cfg(test)]
 mod set_test {
-    use super::Set;
-    use smallvec::smallvec;
+    use super::{Range, Set};
+    use smallvec::{smallvec, SmallVec};
 
     #[test]
     fn intersect() {
-        assert_eq!((0..10).intersect(&(2..12)), Some(2..10));
-        assert_eq!((2..12).intersect(&(0..10)), Some(2..10));
+        macro_rules! test_eq {
+            ($lhs:expr, $rhs:expr => []) => {
+                assert_eq!(($lhs).intersect(&($rhs)), None);
+                assert_eq!(($rhs).intersect(&($lhs)), None);
+            };
+            ($lhs:expr, $rhs:expr => [$result:expr]) => {
+                assert_eq!(($lhs).intersect(&($rhs)), Some($result));
+                assert_eq!(($rhs).intersect(&($lhs)), Some($result));
+            };
+        }
 
-        assert_eq!((10..20).intersect(&(0..10)), Some(10..10));
-        assert_eq!((0..10).intersect(&(10..20)), Some(10..10));
-
-        assert_eq!((0..1).intersect(&(10..11)), None);
-        assert_eq!((10..11).intersect(&(0..1)), None);
+        test_eq!(0..10, 2..12 => [2..10]);
+        test_eq!(10..20, 0..10 => []);
+        test_eq!(0..1, 10..11 => []);
     }
 
     #[test]
     fn subtract() {
         macro_rules! test_eq {
-            ($base:expr, $sub:expr, [$($equals:expr),*]) => {{
-                use smallvec::{smallvec, SmallVec};
-                use super::Range;
+            ($base:expr, $sub:expr => [$($equals:expr),*]) => {{
                 let expected: SmallVec::<[Range<u64>; 2]> = smallvec![$($equals),*];
                 assert_eq!(($base).subtract(&($sub)), expected);
             }};
         }
 
-        test_eq!(1..6, 10..16, [1..6]);
-        test_eq!(1..6, 0..3, [3..6]);
-        test_eq!(1..6, 4..7, [1..4]);
-        test_eq!(1..6, 3..5, [1..3, 5..6]);
-        test_eq!(1..6, 1..6, []);
-        test_eq!(1..6, 1..1, [1..6]);
-        test_eq!(1..6, 1..2, [2..6]);
-        test_eq!(1..6, 5..6, [1..5]);
-        test_eq!(1..6, 6..6, [1..6]);
+        test_eq!(1..6, 10..16 => [1..6]);
+        test_eq!(1..6, 0..3 => [3..6]);
+        test_eq!(1..6, 4..7 => [1..4]);
+        test_eq!(1..6, 3..5 => [1..3, 5..6]);
+        test_eq!(1..6, 1..6 => []);
+        test_eq!(1..6, 1..1 => [1..6]);
+        test_eq!(1..6, 1..2 => [2..6]);
+        test_eq!(1..6, 5..6 => [1..5]);
+        test_eq!(1..6, 6..6 => [1..6]);
     }
 }
 
@@ -172,11 +176,10 @@ struct Almanac {
 }
 
 fn main() {
-    let input = advent_of_code_2023::load_input("day-05.txt");
-    let start = std::time::Instant::now();
+    let challenge = advent_of_code_2023::Challenge::start(5, 2);
 
     let almanac = {
-        let mut lines = input.lines();
+        let mut lines = challenge.input_lines();
 
         let seeds_line = lines.next().unwrap();
         let (_, seeds_list) = seeds_line.split_once("seeds: ").unwrap();
@@ -246,6 +249,5 @@ fn main() {
         ranges.iter().map(|r| r.start).min().unwrap()
     };
 
-    let elapsed = start.elapsed().as_secs_f64() * 1e3;
-    println!("{} ({:.3}ms)", result, elapsed);
+    challenge.finish(result);
 }
