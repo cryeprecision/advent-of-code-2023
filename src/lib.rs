@@ -49,8 +49,8 @@ pub struct Challenge {
 impl Challenge {
     /// Start the challenge by loading the input and recording the current time.
     pub fn start(day: usize, part: usize) -> Challenge {
-        assert!(day >= 1 && day <= 24, "day {} is out of range", day);
-        assert!(part >= 1 && part <= 2, "part {} is out of range", part);
+        assert!((1..=24).contains(&day), "day {} is out of range", day);
+        assert!((1..=2).contains(&part), "part {} is out of range", part);
 
         // load the puzzle input
         let input = load_input(&format!("day-{:02}-{:02}.txt", day, part))
@@ -75,7 +75,7 @@ impl Challenge {
                     },
                 }
             })
-            .unwrap_or(Solution::default());
+            .unwrap_or_default();
 
         let start = Instant::now();
 
