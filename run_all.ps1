@@ -1,5 +1,8 @@
-cargo build -q --release
-cargo build -q
+cargo build --release
+Write-Host
+
+cargo build
+Write-Host
 
 $files_release = Get-ChildItem -Path "./target/release/day-*-part-*.exe"
 $files_debug = Get-ChildItem -Path "./target/debug/day-*-part-*.exe"
