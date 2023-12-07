@@ -1,21 +1,21 @@
 #![feature(slice_group_by)]
 
-use std::cmp::Ordering;
+use std::{cmp::Ordering, fmt::Debug};
 
 use smallvec::SmallVec;
 
 fn card_to_weight(c: char) -> u8 {
     match c {
-        '2' => 1,
-        '3' => 2,
-        '4' => 3,
-        '5' => 4,
-        '6' => 5,
-        '7' => 6,
-        '8' => 7,
-        '9' => 8,
-        'T' => 9,
-        'J' => 10,
+        'J' => 1,
+        '2' => 2,
+        '3' => 3,
+        '4' => 4,
+        '5' => 5,
+        '6' => 6,
+        '7' => 7,
+        '8' => 8,
+        '9' => 9,
+        'T' => 10,
         'Q' => 11,
         'K' => 12,
         'A' => 13,
@@ -53,7 +53,12 @@ struct Card {
     weight: u8,
 }
 
-#[derive(Debug)]
+impl Card {
+    fn is_joker(self) -> bool {
+        self.weight == 1
+    }
+}
+
 struct Hand {
     hand: [Card; 5],
     bid: u64,
@@ -69,12 +74,27 @@ impl Hand {
             .map(|group| (group[0], group.len()))
             .collect();
 
-        let groups_count = groups.len();
-        let max_len = groups.iter().fold(0, |acc, next| acc.max(next.1));
+        let mut groups_count = groups.len();
+        let mut max_len = groups.iter().fold(0, |acc, next| {
+            if !next.0.is_joker() {
+                acc.max(next.1)
+            } else {
+                acc
+            }
+        });
+
+        if groups.len() > 1 {
+            if let Some(jokers) = groups.iter().position(|group| group.0.is_joker()) {
+                // remove jokers group
+                groups_count -= 1;
+                // add jokers to largest group
+                max_len += groups[jokers].1;
+            }
+        }
 
         match (groups_count, max_len) {
             (1, _) => 7, // Five of a kind
-            (2, 4) => 6, // Four or a kind
+            (2, 4) => 6, // Four of a kind
             (2, _) => 5, // Full House
             (3, 3) => 4, // Thee of a kind
             (3, _) => 3, // Two pair
@@ -83,7 +103,7 @@ impl Hand {
             _ => panic!(
                 "invalid amount of groups {}\n\
                     \thand: {}",
-                groups.len(),
+                groups_count,
                 debug_cards(hand),
             ),
         }
@@ -101,7 +121,7 @@ impl Hand {
 }
 
 fn main() {
-    let challenge = advent_of_code_2023::Challenge::start(7, 1);
+    let challenge = advent_of_code_2023::Challenge::start(7, 2);
 
     let mut hands = challenge
         .input_lines()
