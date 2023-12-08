@@ -44,7 +44,7 @@ fn least_common_multiple(nums: &[u64]) -> u64 {
 }
 
 fn main() {
-    let challenge = advent_of_code_2023::Challenge::start(8, 2);
+    let mut challenge = advent_of_code_2023::Challenge::start(8, 2);
 
     let (directions, nodes, start_nodes) = {
         let mut lines = challenge.input_lines();
@@ -90,6 +90,7 @@ fn main() {
 
         (directions, nodes, start_nodes)
     };
+    challenge.finish_parsing();
 
     let steps_to_z = start_nodes
         .iter()

@@ -23,7 +23,7 @@ impl Card {
 }
 
 fn main() {
-    let challenge = advent_of_code_2023::Challenge::start(4, 1);
+    let mut challenge = advent_of_code_2023::Challenge::start(4, 1);
 
     let cards = challenge
         .input_lines()
@@ -55,6 +55,7 @@ fn main() {
             }
         })
         .collect::<Vec<_>>();
+    challenge.finish_parsing();
 
     let solution = cards.iter().map(|card| card.points()).sum::<u64>();
 

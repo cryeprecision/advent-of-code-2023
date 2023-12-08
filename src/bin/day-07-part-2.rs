@@ -114,7 +114,7 @@ impl Hand {
 }
 
 fn main() {
-    let challenge = advent_of_code_2023::Challenge::start(7, 2);
+    let mut challenge = advent_of_code_2023::Challenge::start(7, 2);
 
     let mut hands = challenge
         .input_lines()
@@ -140,6 +140,7 @@ fn main() {
             }
         })
         .collect::<Vec<_>>();
+    challenge.finish_parsing();
 
     hands.sort_unstable_by(Hand::cmp);
 

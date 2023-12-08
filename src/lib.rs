@@ -2,7 +2,7 @@ use std::{
     fmt::{Debug, Display},
     path::PathBuf,
     str::{FromStr, Lines},
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 /// Read the file at `./input/<filename>` into a string and then leak the memory
@@ -42,6 +42,7 @@ pub struct Challenge {
     day: usize,
     part: usize,
     start: Instant,
+    parsing: Option<Duration>,
     input: &'static str,
     solution: Solution,
 }
@@ -83,9 +84,14 @@ impl Challenge {
             day,
             part,
             start,
+            parsing: None,
             input,
             solution,
         }
+    }
+
+    pub fn finish_parsing(&mut self) {
+        self.parsing = Some(self.start.elapsed());
     }
 
     /// Finish the callenge, displaying the solution and some metadata.
@@ -95,11 +101,16 @@ impl Challenge {
         T::Err: Debug,
     {
         let elapsed_ms = self.elapsed_ms();
+        let parsing = self
+            .parsing
+            .map(|p| format!("{:>6.3}ms", p.as_secs_f64() * 1e3))
+            .unwrap_or("        ".to_string());
 
         println!(
-            "[Day-{:02} | Part-{:02} | {:>6.3}ms] Solution: {} ({})",
+            "[Day-{:02} | Part-{:02} | {} | {:>6.3}ms] Solution: {} ({})",
             self.day,
             self.part,
+            parsing,
             elapsed_ms,
             solution,
             self.solution.check(self.part, &solution)

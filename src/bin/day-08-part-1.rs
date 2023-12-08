@@ -34,7 +34,7 @@ struct Node {
 }
 
 fn main() {
-    let challenge = advent_of_code_2023::Challenge::start(8, 1);
+    let mut challenge = advent_of_code_2023::Challenge::start(8, 1);
 
     let (directions, nodes) = {
         let mut lines = challenge.input_lines();
@@ -73,6 +73,7 @@ fn main() {
 
         (directions, nodes)
     };
+    challenge.finish_parsing();
 
     let start: NodeId = "AAA".into();
     let end: NodeId = "ZZZ".into();

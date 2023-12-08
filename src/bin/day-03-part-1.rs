@@ -43,7 +43,7 @@ struct Line {
 }
 
 fn main() {
-    let challenge = advent_of_code_2023::Challenge::start(3, 1);
+    let mut challenge = advent_of_code_2023::Challenge::start(3, 1);
 
     let mut numbers = Vec::new();
     let mut symbols = Vec::new();
@@ -92,6 +92,7 @@ fn main() {
             numbers.push(number_buf);
         }
     }
+    challenge.finish_parsing();
 
     let solution = numbers
         .iter()

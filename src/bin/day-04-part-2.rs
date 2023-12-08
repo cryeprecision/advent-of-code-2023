@@ -17,7 +17,7 @@ impl Card {
 }
 
 fn main() {
-    let challenge = advent_of_code_2023::Challenge::start(4, 2);
+    let mut challenge = advent_of_code_2023::Challenge::start(4, 2);
 
     let mut cards = challenge
         .input_lines()
@@ -50,6 +50,7 @@ fn main() {
             }
         })
         .collect::<Vec<_>>();
+    challenge.finish_parsing();
 
     // determine the number of copies for each card
     for i in 0..cards.len() {
