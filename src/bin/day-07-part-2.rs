@@ -69,27 +69,20 @@ impl Hand {
     fn type_weight(mut hand: [Card; 5]) -> u8 {
         hand.sort_unstable();
 
-        let groups: SmallVec<[(Card, usize); 5]> = hand
+        let mut groups: SmallVec<[(Card, usize); 5]> = hand
             .group_by(|lhs, rhs| lhs == rhs)
             .map(|group| (group[0], group.len()))
             .collect();
+        let jokers = groups.iter().position(|(card, _)| card.is_joker());
+        let jokers = jokers.map(|idx| groups.remove(idx));
 
-        let mut groups_count = groups.len();
-        let mut max_len = groups.iter().fold(0, |acc, next| {
-            if !next.0.is_joker() {
-                acc.max(next.1)
-            } else {
-                acc
-            }
-        });
+        // amount of groups and max length of any group except the jokers group
+        let groups_count = groups.len().max(1);
+        let mut max_len = groups.iter().fold(0, |acc, &(_, next)| acc.max(next));
 
-        if groups.len() > 1 {
-            if let Some(jokers) = groups.iter().position(|group| group.0.is_joker()) {
-                // remove jokers group
-                groups_count -= 1;
-                // add jokers to largest group
-                max_len += groups[jokers].1;
-            }
+        if let Some((_, jokers)) = jokers {
+            // add jokers to largest group
+            max_len += jokers;
         }
 
         match (groups_count, max_len) {
