@@ -40,7 +40,7 @@ struct Node {
 }
 
 fn prime_factors(mut n: u64) -> Vec<u64> {
-    // <https://de.wikibooks.org/wiki/Algorithmensammlung:_Zahlentheorie:_Primfaktorisierung#Pseudocode>
+    // https://de.wikibooks.org/wiki/Algorithmensammlung:_Zahlentheorie:_Primfaktorisierung#Pseudocode
 
     if n < 2 {
         return Vec::new();
@@ -62,7 +62,8 @@ fn prime_factors(mut n: u64) -> Vec<u64> {
 }
 
 fn least_common_multiple(nums: &[u64]) -> u64 {
-    // <https://www.calculatorsoup.com/calculators/math/lcm.php#primes>
+    // https://www.calculatorsoup.com/calculators/math/lcm.php#primes
+    // https://en.wikipedia.org/wiki/Least_common_multiple
 
     let mut prime_factors_max = Vec::<(u64, u64)>::new();
     nums.iter().for_each(|&num| {
