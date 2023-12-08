@@ -39,59 +39,8 @@ struct Node {
     right: (NodeId, usize),
 }
 
-fn prime_factors(mut n: u64) -> Vec<u64> {
-    // https://de.wikibooks.org/wiki/Algorithmensammlung:_Zahlentheorie:_Primfaktorisierung#Pseudocode
-
-    if n < 2 {
-        return Vec::new();
-    }
-
-    let mut f = Vec::new();
-    let mut t = 2;
-
-    while t * t <= n {
-        while n % t == 0 {
-            f.push(t);
-            n /= t;
-        }
-        t += 1;
-    }
-
-    f.push(n);
-    f
-}
-
 fn least_common_multiple(nums: &[u64]) -> u64 {
-    // https://www.calculatorsoup.com/calculators/math/lcm.php#primes
-    // https://en.wikipedia.org/wiki/Least_common_multiple
-
-    let mut prime_factors_max = Vec::<(u64, u64)>::new();
-    nums.iter().for_each(|&num| {
-        let mut prime_factors = prime_factors(num);
-        prime_factors.sort_unstable(); // probably already sorted but whatever
-
-        prime_factors
-            .group_by(|lhs, rhs| lhs == rhs)
-            .map(|group| (group[0], group.len() as u64))
-            .for_each(|(group_prime, group_len)| {
-                // probably faster with linear search because there are usually few prime factors
-                match prime_factors_max.binary_search_by_key(&group_prime, |(prime, _)| *prime) {
-                    Ok(lookup_idx) => {
-                        prime_factors_max[lookup_idx].1 =
-                            prime_factors_max[lookup_idx].1.max(group_len)
-                    }
-                    Err(insert_idx) => {
-                        prime_factors_max.insert(insert_idx, (group_prime, group_len))
-                    }
-                }
-            });
-    });
-
-    prime_factors_max
-        .into_iter()
-        .map(|(prime, count)| prime.pow(count as u32))
-        .reduce(|acc, num| acc * num)
-        .unwrap()
+    nums.iter().cloned().reduce(num_integer::lcm).unwrap()
 }
 
 fn main() {
