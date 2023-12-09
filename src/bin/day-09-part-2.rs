@@ -12,8 +12,8 @@ fn main() {
     challenge.finish_parsing();
 
     let solution = lists
-        .iter()
-        .map(|list| {
+        .into_iter()
+        .map(|mut list| {
             fn recurse(depth: usize, buffer: &mut [i64]) -> i64 {
                 // check for end of recursion
                 if buffer.len() < 2 || buffer.iter().all(|&num| num == 0) {
@@ -30,8 +30,7 @@ fn main() {
                 my_result - recurse(depth + 1, &mut buffer[1..])
             }
 
-            let mut list_buffer = list.clone();
-            recurse(0, &mut list_buffer[..])
+            recurse(0, &mut list[..])
         })
         .sum::<i64>();
 
