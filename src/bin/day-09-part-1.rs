@@ -16,7 +16,7 @@ fn main() {
     let solution = line_ends
         .windows(2)
         .map(|limits| {
-            fn recurse(depth: usize, buffer: &mut [i64]) -> i64 {
+            fn recurse(buffer: &mut [i64]) -> i64 {
                 // check for end of recursion
                 if buffer.len() < 2 || buffer.iter().all(|&num| num == 0) {
                     return 0;
@@ -28,11 +28,11 @@ fn main() {
                         buffer[buffer.len() - i - 1] - buffer[buffer.len() - i - 2];
                 }
 
-                buffer[buffer.len() - 1] + recurse(depth + 1, &mut buffer[1..])
+                buffer[buffer.len() - 1] + recurse(&mut buffer[1..])
             }
 
             let list = &mut numbers[limits[0]..limits[1]];
-            list[list.len() - 1] + recurse(0, &mut list[..])
+            list[list.len() - 1] + recurse(&mut list[..])
         })
         .sum::<i64>();
 
