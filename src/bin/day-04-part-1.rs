@@ -1,12 +1,9 @@
-#![allow(dead_code)]
-
-struct Card {
-    id: u64,
-    winners: Vec<u64>,
-    numbers: Vec<u64>,
+struct Card<'a> {
+    winners: &'a [u8],
+    numbers: &'a [u8],
 }
 
-impl Card {
+impl<'a> Card<'a> {
     fn matching_numbers(&self) -> usize {
         self.numbers
             .iter()
@@ -23,41 +20,41 @@ impl Card {
 }
 
 fn main() {
-    let mut challenge = advent_of_code_2023::Challenge::start(4, 1);
+    let challenge = advent_of_code_2023::Challenge::start(4, 1);
 
-    let cards = challenge
+    fn scan_input<'a>(state: &'a mut Vec<u8>, line: &'static str) -> Card<'a> {
+        let (_, line) = line.split_once(": ").unwrap();
+        let (winners, numbers) = line.split_once(" | ").unwrap();
+
+        // reuse buffer
+        state.clear();
+
+        // push all winners
+        winners
+            .split_whitespace()
+            .for_each(|num| state.push(num.parse::<u8>().unwrap()));
+
+        // push all numbers
+        let first_number = state.len();
+        numbers
+            .split_whitespace()
+            .for_each(|num| state.push(num.parse::<u8>().unwrap()));
+
+        // sort segments for binary search
+        state[..first_number].sort_unstable();
+        state[first_number..].sort_unstable();
+
+        Card {
+            winners: &state[..first_number],
+            numbers: &state[first_number..],
+        }
+    }
+
+    let mut state = Vec::new();
+    let solution = challenge
         .input_lines()
-        .map(|line| {
-            let (_, line) = line.split_once("Card").unwrap();
-            let (id, line) = line.split_once(':').unwrap();
-            let id = id.trim_start().parse::<u64>().unwrap();
-
-            let mut winners = Vec::<u64>::new();
-            let mut numbers = Vec::<u64>::new();
-
-            let mut past_separator = false;
-            for part in line.split_whitespace() {
-                match (part, past_separator) {
-                    ("|", _) => past_separator = true,
-                    (_, false) => winners.push(part.parse().unwrap()),
-                    (_, true) => numbers.push(part.parse().unwrap()),
-                }
-            }
-
-            // sort for binary search
-            winners.sort_unstable();
-            numbers.sort_unstable();
-
-            Card {
-                id,
-                winners,
-                numbers,
-            }
-        })
-        .collect::<Vec<_>>();
-    challenge.finish_parsing();
-
-    let solution = cards.iter().map(|card| card.points()).sum::<u64>();
+        .map(|line| scan_input(&mut state, line).points())
+        .sum::<u64>();
 
     challenge.finish(solution);
 }
