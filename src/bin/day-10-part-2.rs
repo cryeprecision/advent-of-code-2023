@@ -203,16 +203,17 @@ fn main() {
 
     // record the path we walked
     let mut path = vec![starts[0].pos, current.pos];
+    path.sort_unstable();
 
     while current.pos != finish.pos {
         current = current.step(&maze).unwrap();
-        path.push(current.pos);
+        path.insert(path.binary_search(&current.pos).unwrap_err(), current.pos);
     }
 
     // replace all pipes that are not part of the main loop with ground
     maze.iter_mut().enumerate().for_each(|(row, line)| {
         line.iter_mut().enumerate().for_each(|(col, c)| {
-            if !path.contains(&Pos { row, col }) {
+            if path.binary_search(&Pos { row, col }).is_err() {
                 *c = b'.';
             }
         })
