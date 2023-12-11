@@ -73,6 +73,7 @@ impl Hand {
             .group_by(|lhs, rhs| lhs == rhs)
             .map(|group| (group[0], group.len()))
             .collect();
+
         let jokers = groups.iter().position(|(card, _)| card.is_joker());
         let jokers = jokers.map(|idx| groups.remove(idx));
 
