@@ -1,6 +1,6 @@
 #![feature(slice_group_by)]
 
-use smallvec::SmallVec;
+use smallvec::{smallvec, SmallVec};
 
 #[allow(dead_code)]
 fn debug_maze(maze: &[Vec<u8>]) -> String {
@@ -110,6 +110,38 @@ impl State {
 
         Some(State { pos, dir })
     }
+    fn mark_step(self, maze: &[Vec<u8>], inner_fields: &mut Vec<Pos>) -> Option<Self> {
+        // dir is pointing in the direction of the exit of the current pipe
+        let insides: SmallVec<[Dir; 2]> = match (maze[self.pos.row][self.pos.col], self.dir) {
+            (b'-', Dir::Left) => smallvec![Dir::Up],
+            (b'-', Dir::Right) => smallvec![Dir::Down],
+            (b'|', Dir::Up) => smallvec![Dir::Right],
+            (b'|', Dir::Down) => smallvec![Dir::Left],
+            (b'7', Dir::Left) => smallvec![Dir::Up, Dir::Right],
+            (b'7', Dir::Down) => smallvec![],
+            (b'F', Dir::Right) => smallvec![],
+            (b'F', Dir::Down) => smallvec![Dir::Up, Dir::Left],
+            (b'J', Dir::Left) => smallvec![],
+            (b'J', Dir::Up) => smallvec![Dir::Right, Dir::Down],
+            (b'L', Dir::Right) => smallvec![Dir::Left, Dir::Down],
+            (b'L', Dir::Up) => smallvec![],
+            _ => smallvec![],
+        };
+
+        insides.iter().for_each(|&dir| {
+            let Some(pos) = self.pos.step(dir, maze) else {
+                return;
+            };
+            // add to the list of inner fields
+            if maze[pos.row][pos.col] == b'.' {
+                if let Err(idx) = inner_fields.binary_search(&pos) {
+                    inner_fields.insert(idx, pos);
+                }
+            }
+        });
+
+        self.step(maze)
+    }
 }
 
 fn start_states(pos: Pos, maze: &[Vec<u8>]) -> [State; 2] {
@@ -125,10 +157,30 @@ fn start_states(pos: Pos, maze: &[Vec<u8>]) -> [State; 2] {
         .unwrap()
 }
 
-fn main() {
-    let mut challenge = advent_of_code_2023::Challenge::start(10, 1);
+fn horizontal_fill(pos: Pos, maze: &mut [Vec<u8>]) {
+    let line = maze[pos.row].as_mut_slice();
 
-    let maze = challenge
+    for col in (pos.col..line.len()).skip(1) {
+        if line[col] == b'.' {
+            line[col] = b'I';
+        } else {
+            break;
+        }
+    }
+
+    for col in (0..pos.col).rev().skip(1) {
+        if line[col] == b'.' {
+            line[col] = b'I';
+        } else {
+            break;
+        }
+    }
+}
+
+fn main() {
+    let mut challenge = advent_of_code_2023::Challenge::start(10, 2);
+
+    let mut maze = challenge
         .input_lines()
         .map(|line| line.as_bytes().to_vec())
         .collect::<Vec<_>>();
@@ -149,12 +201,44 @@ fn main() {
     let finish = starts[1].step(&maze).unwrap();
     let mut current = starts[0].step(&maze).unwrap();
 
-    let mut path_len = 2;
+    // record the path we walked
+    let mut path = vec![starts[0].pos, current.pos];
 
     while current.pos != finish.pos {
         current = current.step(&maze).unwrap();
-        path_len += 1;
+        path.push(current.pos);
     }
 
-    challenge.finish(path_len / 2);
+    // replace all pipes that are not part of the main loop with ground
+    maze.iter_mut().enumerate().for_each(|(row, line)| {
+        line.iter_mut().enumerate().for_each(|(col, c)| {
+            if !path.contains(&Pos { row, col }) {
+                *c = b'.';
+            }
+        })
+    });
+
+    let starts = start_states(start, &maze);
+    let finish = starts[1].step(&maze).unwrap();
+
+    let mut inner_fields = Vec::new();
+    let mut current = starts[0].mark_step(&maze, &mut inner_fields).unwrap();
+
+    while current.pos != finish.pos {
+        current = current.mark_step(&maze, &mut inner_fields).unwrap();
+    }
+
+    inner_fields.iter().for_each(|&pos| {
+        maze[pos.row][pos.col] = b'I';
+    });
+    inner_fields.iter().for_each(|&pos| {
+        horizontal_fill(pos, &mut maze);
+    });
+
+    let solution = maze
+        .iter()
+        .map(|line| line.iter().filter(|&&c| c == b'I').count())
+        .sum::<usize>();
+
+    challenge.finish(solution);
 }
