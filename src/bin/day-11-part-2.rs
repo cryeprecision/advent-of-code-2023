@@ -51,14 +51,15 @@ impl Galaxy {
         let (start_row, end_row) = (my_row.min(other_row), my_row.max(other_row));
         let (start_col, end_col) = (my_col.min(other_col), my_col.max(other_col));
 
-        let empty_rows_hit = empty_rows
-            .iter()
-            .filter(|&&col| col > start_row && col < end_row)
-            .count();
-        let empty_cols_hit = empty_cols
-            .iter()
-            .filter(|&&row| row > start_col && row < end_col)
-            .count();
+        let (empty_rows_hit, empty_cols_hit) = {
+            let rows_start = empty_rows.partition_point(|&row| row <= start_row);
+            let rows_end = empty_rows.partition_point(|&row| row <= end_row);
+
+            let cols_start = empty_cols.partition_point(|&col| col <= start_col);
+            let cols_end = empty_cols.partition_point(|&col| col <= end_col);
+
+            (rows_end - rows_start, cols_end - cols_start)
+        };
 
         (end_row - start_row)
             + (end_col - start_col)
@@ -125,18 +126,16 @@ fn main() {
 
     let galaxies = original.galaxies();
 
-    let solution = {
-        (0..galaxies.len()).fold(0, |acc, lhs_idx| {
-            acc + (lhs_idx..galaxies.len()).fold(0, |acc, rhs_idx| {
-                acc + galaxies[lhs_idx].distance_to(
-                    &galaxies[rhs_idx],
-                    original.width,
-                    &empty_rows,
-                    &empty_cols,
-                )
-            })
+    let solution = (0..galaxies.len()).fold(0, |acc, lhs_idx| {
+        acc + (lhs_idx..galaxies.len()).fold(0, |acc, rhs_idx| {
+            acc + galaxies[lhs_idx].distance_to(
+                &galaxies[rhs_idx],
+                original.width,
+                &empty_rows,
+                &empty_cols,
+            )
         })
-    };
+    });
 
     challenge.finish(solution);
 }
