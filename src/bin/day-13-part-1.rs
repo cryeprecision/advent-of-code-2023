@@ -36,33 +36,35 @@ impl Image {
     fn solve(&self) -> usize {
         let height = self.data.len() / self.width;
 
+        // set up iterators for lazily finding pairs of matching rows/cols
         let mut matching_row_pairs = (0..(height - 1))
             .zip(1..height)
             .filter(|&(lhs, rhs)| self.rows_match(lhs, rhs));
-
         let mut matching_col_pairs = (0..(self.width - 1))
             .zip(1..self.width)
             .filter(|&(lhs, rhs)| self.cols_match(lhs, rhs));
 
-        let row_mirror = matching_row_pairs.find(|&(row_lhs, row_rhs)| {
+        // try to find mirror axis for rows
+        if let Some((_, row)) = matching_row_pairs.find(|&(row_lhs, row_rhs)| {
             (0..row_lhs)
                 .rev()
                 .zip((row_rhs..height).skip(1))
                 .all(|(row_rhs, row_lhs)| self.rows_match(row_lhs, row_rhs))
-        });
+        }) {
+            return row * 100;
+        }
 
-        let col_mirror = matching_col_pairs.find(|&(col_lhs, col_rhs)| {
+        // if no mirror axis for rows was found, try to find mirror axis for cols
+        if let Some((_, col)) = matching_col_pairs.find(|&(col_lhs, col_rhs)| {
             (0..col_lhs)
                 .rev()
                 .zip((col_rhs..self.width).skip(1))
                 .all(|(col_rhs, col_lhs)| self.cols_match(col_lhs, col_rhs))
-        });
-
-        match (row_mirror, col_mirror) {
-            (Some((_, row)), None) => row * 100,
-            (None, Some((_, col))) => col,
-            _ => panic!("invalid mirrors: {:?}, {:?}", row_mirror, col_mirror),
+        }) {
+            return col;
         }
+
+        panic!("image must contain at least one mirror axixs");
     }
 }
 
