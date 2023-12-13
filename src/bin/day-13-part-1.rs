@@ -9,28 +9,23 @@ struct Image {
 }
 
 impl Image {
+    /// Check if the two columns are exactly equal
     fn cols_match(&self, col_lhs: usize, col_rhs: usize) -> bool {
         debug_assert_ne!(col_lhs, col_rhs);
 
         let height = self.data.len() / self.width;
-        for row_idx in 0..height {
-            if self.data[row_idx * self.width + col_lhs]
-                != self.data[row_idx * self.width + col_rhs]
-            {
-                return false;
-            }
-        }
-
-        true
+        (0..height).all(|row_idx| {
+            self.data[row_idx * self.width + col_lhs] == self.data[row_idx * self.width + col_rhs]
+        })
     }
 
+    /// Check if the two rows are exactly equal
     fn rows_match(&self, row_lhs: usize, row_rhs: usize) -> bool {
         debug_assert_ne!(row_lhs, row_rhs);
 
-        let lhs = &self.data[(row_lhs * self.width)..((row_lhs + 1) * self.width)];
-        let rhs = &self.data[(row_rhs * self.width)..((row_rhs + 1) * self.width)];
-
-        lhs == rhs
+        (0..self.width).all(|col_idx| {
+            self.data[row_lhs * self.width + col_idx] == self.data[row_rhs * self.width + col_idx]
+        })
     }
 
     fn solve(&self) -> usize {
