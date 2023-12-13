@@ -75,7 +75,7 @@ impl std::fmt::Display for Image {
             let row = &self.data[(row_idx * self.width)..((row_idx + 1) * self.width)];
             f.write_str(std::str::from_utf8(row).unwrap())?;
 
-            while let Some(row_idx) = rows.next() {
+            for row_idx in rows {
                 let row = &self.data[(row_idx * self.width)..((row_idx + 1) * self.width)];
                 f.write_char('\n')?;
                 f.write_str(std::str::from_utf8(row).unwrap())?;
@@ -99,7 +99,7 @@ fn main() {
             buffer.width = line.len();
             buffer.data.extend_from_slice(line.as_bytes());
 
-            while let Some(line) = lines.next() {
+            for line in lines {
                 if line.is_empty() {
                     images.push(std::mem::take(&mut buffer));
                     continue;

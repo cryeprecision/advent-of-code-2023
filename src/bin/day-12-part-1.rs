@@ -6,7 +6,7 @@ struct Spring {
     damaged_lens: Vec<usize>,
 }
 
-impl<'a> std::fmt::Debug for Spring {
+impl std::fmt::Debug for Spring {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let report = std::str::from_utf8(&self.report).unwrap();
         write!(f, "Spring {{ ")?;
