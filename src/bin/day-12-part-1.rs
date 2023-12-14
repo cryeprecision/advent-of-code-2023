@@ -53,6 +53,7 @@ impl Spring {
 fn main() {
     let mut challenge = advent_of_code_2023::Challenge::start(12, 1);
 
+    #[allow(unused_variables)]
     let springs = challenge
         .input_lines()
         .map(|line| {
@@ -74,7 +75,7 @@ fn main() {
         .collect::<Vec<_>>();
     challenge.finish_parsing();
 
-    springs.iter().for_each(|spring| println!("{:?}", spring));
+    // TODO: Improve brain and solve problem
 
     challenge.finish(0);
 }
