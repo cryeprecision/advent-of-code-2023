@@ -168,17 +168,14 @@ impl Image {
     }
 
     fn cycle_n(&mut self, rock_buf: &mut Vec<Pos>, cycles: usize) {
-        let mut cycles_done = 0usize;
         let mut hashes = vec![(0, self.hashed())];
 
         // keep cycling until we encounter the same hash twice
         let repeating_hash_idx = loop {
-            if cycles_done == cycles {
+            if hashes.len() - 1 == cycles {
                 return;
             }
-
             self.cycle(rock_buf);
-            cycles_done += 1;
 
             let hash = self.hashed();
             match hashes.binary_search_by_key(&hash, |&(_, hash)| hash) {
