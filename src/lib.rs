@@ -101,16 +101,13 @@ impl Challenge {
         T::Err: Debug,
     {
         let elapsed_ms = self.elapsed_ms();
-        let parsing = self
-            .parsing
-            .map(|p| format!("{:>6.3}ms", p.as_secs_f64() * 1e3))
-            .unwrap_or("        ".to_string());
+        let parsing_ms = self.parsing.map(|d| d.as_secs_f64() * 1e3).unwrap_or(-1.0);
 
         println!(
-            "[Day-{:02} | Part-{:02} | {} | {:>6.3}ms] Solution: {} ({})",
+            "[Day-{:02} | Part-{:02} | {:>9.3}ms | {:>9.3}ms] Solution: {} ({})",
             self.day,
             self.part,
-            parsing,
+            parsing_ms,
             elapsed_ms,
             solution,
             self.solution.check(self.part, &solution)
