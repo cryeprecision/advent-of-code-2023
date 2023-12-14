@@ -133,7 +133,7 @@ impl Image {
                         self.move_rock(rock_pos, new_rock_pos);
                     }
                 })
-        })
+        });
     }
     fn tilt_right(&mut self, rocks: &[Pos]) {
         (0..self.height()).for_each(|row_idx| {
@@ -146,7 +146,7 @@ impl Image {
                         self.move_rock(rock_pos, new_rock_pos);
                     }
                 })
-        })
+        });
     }
 
     fn cycle(&mut self, rock_buf: &mut Vec<Pos>) {
