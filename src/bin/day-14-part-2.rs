@@ -2,51 +2,10 @@
 
 use std::{fmt::Write, hash::Hasher};
 
-use num_integer::Integer;
-
 #[derive(Clone)]
 struct Image {
     data: Vec<u8>,
     width: usize,
-}
-
-#[derive(Debug, Clone, Copy)]
-enum Dir {
-    Up,
-    Down,
-    Left,
-    Right,
-}
-
-#[derive(Debug, Clone, Copy)]
-struct Pos {
-    row: usize,
-    col: usize,
-}
-
-impl Pos {
-    fn new(row: usize, col: usize) -> Pos {
-        Pos { row, col }
-    }
-    fn checked_add_signed(self, row: isize, col: isize, image: Pos) -> Option<Pos> {
-        let row = self.row.checked_add_signed(row)?;
-        let col = self.col.checked_add_signed(col)?;
-        if row >= image.row || col >= image.col {
-            return None;
-        }
-        Some(Pos::new(row, col))
-    }
-}
-
-impl Dir {
-    fn add_to(self, pos: Pos, image: Pos) -> Option<Pos> {
-        match self {
-            Dir::Up => pos.checked_add_signed(-1, 0, image),
-            Dir::Down => pos.checked_add_signed(1, 0, image),
-            Dir::Left => pos.checked_add_signed(0, -1, image),
-            Dir::Right => pos.checked_add_signed(0, 1, image),
-        }
-    }
 }
 
 impl Image {
@@ -58,116 +17,87 @@ impl Image {
         &self.data[(row_idx * self.width)..((row_idx + 1) * self.width)]
     }
 
-    fn at_pos(&self, pos: Pos) -> u8 {
-        self.data[pos.row * self.width + pos.col]
-    }
-    fn dimensions(&self) -> Pos {
-        Pos::new(self.height(), self.width)
-    }
-
-    fn best_free_spot(&self, rock: Pos, dir: Dir) -> Option<Pos> {
-        let dims = self.dimensions();
-
-        let mut best_pos = dir.add_to(rock, dims)?;
-        if self.at_pos(best_pos) != b'.' {
-            return None;
-        }
-
-        while let Some(next_pos) = dir.add_to(best_pos, dims) {
-            if self.at_pos(next_pos) == b'.' {
-                best_pos = next_pos;
-            } else {
-                break;
-            }
-        }
-
-        Some(best_pos)
-    }
-
-    fn rocks(&self, rock_buf: &mut Vec<Pos>) {
-        debug_assert_eq!(rock_buf.len(), 0);
-        let rocks = self
-            .data
-            .iter()
-            .enumerate()
-            .filter(|(_, &b)| b == b'O')
-            .map(|(idx, _)| {
-                let (row, col) = idx.div_rem(&self.width);
-                Pos { row, col }
+    fn tilt_up(&mut self) {
+        let height = self.height();
+        (0..self.width).for_each(|col_idx| {
+            let mut free_spot = None;
+            (0..height).for_each(|row_idx| {
+                let from_idx = row_idx * self.width + col_idx;
+                match (self.data[from_idx], free_spot) {
+                    (b'.', None) => free_spot = Some(from_idx),
+                    (b'#', Some(_)) => free_spot = None,
+                    (b'O', Some(to_idx)) => {
+                        self.move_rock(from_idx, to_idx);
+                        free_spot = Some(to_idx + self.width);
+                    }
+                    _ => (),
+                }
             });
-        rock_buf.extend(rocks);
+        });
     }
-
-    fn tilt_up(&mut self, rocks: &[Pos]) {
+    fn tilt_down(&mut self) {
+        let height = self.height();
         (0..self.width).for_each(|col_idx| {
-            rocks
-                .iter()
-                .filter(|&rock_pos| rock_pos.col == col_idx)
-                .for_each(|&rock_pos| {
-                    if let Some(new_rock_pos) = self.best_free_spot(rock_pos, Dir::Up) {
-                        self.move_rock(rock_pos, new_rock_pos);
+            let mut free_spot = None;
+            (0..height).rev().for_each(|row_idx| {
+                let from_idx = row_idx * self.width + col_idx;
+                match (self.data[from_idx], free_spot) {
+                    (b'.', None) => free_spot = Some(from_idx),
+                    (b'#', Some(_)) => free_spot = None,
+                    (b'O', Some(to_idx)) => {
+                        self.move_rock(from_idx, to_idx);
+                        free_spot = Some(to_idx - self.width);
                     }
-                });
+                    _ => (),
+                }
+            });
         });
     }
-    fn tilt_down(&mut self, rocks: &[Pos]) {
-        (0..self.width).for_each(|col_idx| {
-            rocks
-                .iter()
-                .rev() // <-- !
-                .filter(|&rock_pos| rock_pos.col == col_idx)
-                .for_each(|&rock_pos| {
-                    if let Some(new_rock_pos) = self.best_free_spot(rock_pos, Dir::Down) {
-                        self.move_rock(rock_pos, new_rock_pos);
+    fn tilt_left(&mut self) {
+        let height = self.height();
+        (0..height).for_each(|row_idx| {
+            let mut free_spot = None;
+            (0..self.width).for_each(|col_idx| {
+                let from_idx = row_idx * self.width + col_idx;
+                match (self.data[from_idx], free_spot) {
+                    (b'.', None) => free_spot = Some(from_idx),
+                    (b'#', Some(_)) => free_spot = None,
+                    (b'O', Some(to_idx)) => {
+                        self.move_rock(from_idx, to_idx);
+                        free_spot = Some(to_idx + 1);
                     }
-                });
-        });
+                    _ => (),
+                }
+            });
+        })
     }
-    fn tilt_left(&mut self, rocks: &[Pos]) {
-        (0..self.height()).for_each(|row_idx| {
-            rocks
-                .iter()
-                .filter(|&rock_pos| rock_pos.row == row_idx)
-                .for_each(|&rock_pos| {
-                    if let Some(new_rock_pos) = self.best_free_spot(rock_pos, Dir::Left) {
-                        self.move_rock(rock_pos, new_rock_pos);
+    fn tilt_right(&mut self) {
+        let height = self.height();
+        (0..height).for_each(|row_idx| {
+            let mut free_spot = None;
+            (0..self.width).rev().for_each(|col_idx| {
+                let from_idx = row_idx * self.width + col_idx;
+                match (self.data[from_idx], free_spot) {
+                    (b'.', None) => free_spot = Some(from_idx),
+                    (b'#', Some(_)) => free_spot = None,
+                    (b'O', Some(to_idx)) => {
+                        self.move_rock(from_idx, to_idx);
+                        free_spot = Some(to_idx - 1);
                     }
-                })
-        });
-    }
-    fn tilt_right(&mut self, rocks: &[Pos]) {
-        (0..self.height()).for_each(|row_idx| {
-            rocks
-                .iter()
-                .rev() // <-- !
-                .filter(|&rock_pos| rock_pos.row == row_idx)
-                .for_each(|&rock_pos| {
-                    if let Some(new_rock_pos) = self.best_free_spot(rock_pos, Dir::Right) {
-                        self.move_rock(rock_pos, new_rock_pos);
-                    }
-                })
-        });
+                    _ => (),
+                }
+            });
+        })
     }
 
-    fn cycle(&mut self, rock_buf: &mut Vec<Pos>) {
-        self.rocks(rock_buf);
-        self.tilt_up(rock_buf);
-        rock_buf.clear();
-
-        self.rocks(rock_buf);
-        self.tilt_left(rock_buf);
-        rock_buf.clear();
-
-        self.rocks(rock_buf);
-        self.tilt_down(rock_buf);
-        rock_buf.clear();
-
-        self.rocks(rock_buf);
-        self.tilt_right(rock_buf);
-        rock_buf.clear();
+    fn cycle(&mut self) {
+        self.tilt_up();
+        self.tilt_left();
+        self.tilt_down();
+        self.tilt_right();
     }
 
-    fn cycle_n(&mut self, rock_buf: &mut Vec<Pos>, cycles: usize) {
+    fn cycle_n(&mut self, cycles: usize) {
         let mut hashes = vec![(0, self.hashed())];
 
         // keep cycling until we encounter the same hash twice
@@ -175,7 +105,7 @@ impl Image {
             if hashes.len() - 1 == cycles {
                 return;
             }
-            self.cycle(rock_buf);
+            self.cycle();
 
             let hash = self.hashed();
             match hashes.binary_search_by_key(&hash, |&(_, hash)| hash) {
@@ -194,25 +124,22 @@ impl Image {
         let cycles_left = (cycles - before_cycle) % cycle_len;
 
         // do the remaining cycles
-        (0..cycles_left).for_each(|_| self.cycle(rock_buf));
+        (0..cycles_left).for_each(|_| self.cycle());
     }
 
-    fn move_rock(&mut self, from: Pos, to: Pos) {
-        debug_assert_eq!(self.data[from.row * self.width + from.col], b'O');
-        self.data[from.row * self.width + from.col] = b'.';
-
-        debug_assert_eq!(self.data[to.row * self.width + to.col], b'.');
-        self.data[to.row * self.width + to.col] = b'O';
+    fn move_rock(&mut self, from: usize, to: usize) {
+        self.data[from] = b'.';
+        self.data[to] = b'O';
     }
 
     fn weight(&self) -> u64 {
         let height = self.height();
-        self.data
-            .iter()
-            .enumerate()
-            .filter(|(_, &b)| b == b'O')
-            .map(|(idx, _)| (height - (idx / self.width)) as u64)
-            .sum::<u64>()
+        (0..height)
+            .map(|row_idx| {
+                let rocks = self.row(row_idx).iter().filter(|&&b| b == b'O').count();
+                (height - row_idx) * rocks
+            })
+            .sum::<usize>() as u64
     }
 
     fn hashed(&self) -> u64 {
@@ -252,8 +179,7 @@ fn main() {
     };
     challenge.finish_parsing();
 
-    let mut rock_buf = Vec::new();
-    image.cycle_n(&mut rock_buf, 1_000_000_000);
+    image.cycle_n(1_000_000_000);
 
     challenge.finish(image.weight());
 }
