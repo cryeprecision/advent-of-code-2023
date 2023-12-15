@@ -8,7 +8,7 @@ use std::{
 /// Read the file at `./input/<filename>` into a string and then leak the memory
 pub fn load_input(filename: &str) -> std::io::Result<&'static str> {
     let path: PathBuf = ["./input", filename].iter().collect();
-    Ok(std::fs::read_to_string(path)?.leak())
+    Ok(std::fs::read_to_string(path)?.leak().trim_end())
 }
 
 #[derive(Debug, Default)]
