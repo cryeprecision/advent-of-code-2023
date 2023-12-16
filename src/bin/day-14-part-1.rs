@@ -1,44 +1,9 @@
 use std::fmt::Write;
 
-use num_integer::Integer;
-
 #[derive(Hash)]
 struct Image {
     data: Vec<u8>,
     width: usize,
-}
-
-#[derive(Debug, Clone, Copy)]
-enum Dir {
-    Up,
-}
-
-#[derive(Debug, Clone, Copy)]
-struct Pos {
-    row: usize,
-    col: usize,
-}
-
-impl Pos {
-    fn new(row: usize, col: usize) -> Pos {
-        Pos { row, col }
-    }
-    fn checked_add_signed(self, row: isize, col: isize, image: Pos) -> Option<Pos> {
-        let row = self.row.checked_add_signed(row)?;
-        let col = self.col.checked_add_signed(col)?;
-        if row >= image.row || col >= image.col {
-            return None;
-        }
-        Some(Pos::new(row, col))
-    }
-}
-
-impl Dir {
-    fn add_to(self, pos: Pos, image: Pos) -> Option<Pos> {
-        match self {
-            Dir::Up => pos.checked_add_signed(-1, 0, image),
-        }
-    }
 }
 
 impl Image {
@@ -50,62 +15,28 @@ impl Image {
         &self.data[(row_idx * self.width)..((row_idx + 1) * self.width)]
     }
 
-    fn at_pos(&self, pos: Pos) -> u8 {
-        self.data[pos.row * self.width + pos.col]
-    }
-    fn dimensions(&self) -> Pos {
-        Pos::new(self.height(), self.width)
-    }
-
-    fn best_free_spot(&self, rock: Pos, dir: Dir) -> Option<Pos> {
-        let dims = self.dimensions();
-
-        let mut best_pos = dir.add_to(rock, dims)?;
-        if self.at_pos(best_pos) != b'.' {
-            return None;
-        }
-
-        while let Some(next_pos) = dir.add_to(best_pos, dims) {
-            if self.at_pos(next_pos) == b'.' {
-                best_pos = next_pos;
-            } else {
-                break;
-            }
-        }
-
-        Some(best_pos)
-    }
-
-    fn rocks(&self, rock_buf: &mut Vec<Pos>) {
-        debug_assert_eq!(rock_buf.len(), 0);
-        let rocks = self
-            .data
-            .iter()
-            .enumerate()
-            .filter(|(_, &b)| b == b'O')
-            .map(|(idx, _)| {
-                let (row, col) = idx.div_rem(&self.width);
-                Pos { row, col }
-            });
-        rock_buf.extend(rocks);
-    }
-
-    fn tilt_up(&mut self, rocks: &[Pos]) {
+    fn tilt_up(&mut self) {
+        let height = self.height();
         (0..self.width).for_each(|col_idx| {
-            rocks
-                .iter()
-                .filter(|&rock_pos| rock_pos.col == col_idx)
-                .for_each(|&rock_pos| {
-                    if let Some(new_rock_pos) = self.best_free_spot(rock_pos, Dir::Up) {
-                        self.move_rock(rock_pos, new_rock_pos);
+            let mut free_spot = None;
+            (0..height).for_each(|row_idx| {
+                let from_idx = row_idx * self.width + col_idx;
+                match (self.data[from_idx], free_spot) {
+                    (b'.', None) => free_spot = Some(from_idx),
+                    (b'#', Some(_)) => free_spot = None,
+                    (b'O', Some(to_idx)) => {
+                        self.move_rock(from_idx, to_idx);
+                        free_spot = Some(to_idx + self.width);
                     }
-                });
+                    _ => (),
+                }
+            });
         });
     }
 
-    fn move_rock(&mut self, from: Pos, to: Pos) {
-        self.data[from.row * self.width + from.col] = b'.';
-        self.data[to.row * self.width + to.col] = b'O';
+    fn move_rock(&mut self, from: usize, to: usize) {
+        self.data[from] = b'.';
+        self.data[to] = b'O';
     }
 
     fn weight(&self) -> u64 {
@@ -149,10 +80,7 @@ fn main() {
     };
     challenge.finish_parsing();
 
-    let mut rock_buf = Vec::new();
-
-    image.rocks(&mut rock_buf);
-    image.tilt_up(&rock_buf);
+    image.tilt_up();
     let solution = image.weight();
 
     challenge.finish(solution);
