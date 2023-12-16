@@ -58,6 +58,8 @@ impl Beam {
 
     fn reflected(self, tile: u8) -> SmallVec<[Self; 2]> {
         match (self.dir, tile) {
+            (_, b'.') => smallvec![Beam::new(self.pos, self.dir)],
+
             (Dir::Up | Dir::Down, b'|') => smallvec![Beam::new(self.pos, self.dir)],
             (Dir::Left | Dir::Right, b'|') => {
                 smallvec![Beam::new(self.pos, Dir::Up), Beam::new(self.pos, Dir::Down)]
@@ -79,21 +81,28 @@ impl Beam {
             (Dir::Down, b'\\') => smallvec![Beam::new(self.pos, Dir::Right)],
             (Dir::Right, b'\\') => smallvec![Beam::new(self.pos, Dir::Down)],
 
-            (_, b'.') => smallvec![Beam::new(self.pos, self.dir)],
             _ => unimplemented!(),
         }
     }
 
-    fn step(self, field: &Field) -> SmallVec<[Self; 2]> {
-        let next_pos = match self.dir {
-            Dir::Up if self.pos >= field.width => self.pos - field.width,
-            Dir::Down if self.pos < field.data.len() - field.width => self.pos + field.width,
-            Dir::Left if self.pos % field.width != 0 => self.pos - 1,
-            Dir::Right if self.pos % field.width != field.width - 1 => self.pos + 1,
-            _ => return smallvec![],
-        };
+    fn moved(self, field: &Field) -> Option<Self> {
+        match self.dir {
+            Dir::Up if self.pos >= field.width => Some(Beam::new(self.pos - field.width, self.dir)),
+            Dir::Down if self.pos < field.data.len() - field.width => {
+                Some(Beam::new(self.pos + field.width, self.dir))
+            }
+            Dir::Left if self.pos % field.width != 0 => Some(Beam::new(self.pos - 1, self.dir)),
+            Dir::Right if self.pos % field.width != field.width - 1 => {
+                Some(Beam::new(self.pos + 1, self.dir))
+            }
+            _ => return None,
+        }
+    }
 
-        Beam::new(next_pos, self.dir).reflected(field.data[next_pos])
+    fn step(self, field: &Field) -> SmallVec<[Self; 2]> {
+        self.moved(field)
+            .map(|beam| beam.reflected(field.data[beam.pos]))
+            .unwrap_or(smallvec![])
     }
 }
 
