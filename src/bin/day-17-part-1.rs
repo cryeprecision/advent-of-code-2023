@@ -144,22 +144,27 @@ impl std::fmt::Debug for Dijkstra<'_> {
 }
 
 impl Dijkstra<'_> {
-    fn path(&self) -> Graph {
-        let mut path = vec![b'_'; self.graph.data.len()];
-
-        let mut prev = self.graph.data.len() - 1;
-        path[prev] = b'X';
-
-        while let Some(next_prev) = self.prev[prev] {
-            path[prev] = b'X';
-            prev = next_prev;
-        }
-        path[prev] = b'X';
-
+    fn debug_shortest_path_to(&self, vertex: usize) -> Graph {
+        let mut data = vec![b'_'; self.graph.data.len()];
+        self.shortest_path_to(vertex)
+            .iter()
+            .for_each(|&idx| data[idx] = b'X');
         Graph {
-            data: path,
+            data,
             width: self.graph.width,
         }
+    }
+    fn shortest_path_to(&self, vertex: usize) -> Vec<usize> {
+        let Some(mut prev) = self.prev[vertex] else {
+            return Vec::new();
+        };
+        let mut path = vec![vertex, prev];
+        while let Some(next_prev) = self.prev[prev] {
+            path.push(next_prev);
+            prev = next_prev;
+        }
+        path.reverse();
+        path
     }
 }
 
@@ -235,7 +240,19 @@ fn main() {
     let dijkstra = dijkstra(&graph, 0);
     println!("{:?}\n\n", dijkstra);
 
-    println!("{:?}", dijkstra.path());
+    println!(
+        "{:?}\n\n",
+        dijkstra.debug_shortest_path_to(graph.data.len() - 1)
+    );
+
+    println!(
+        "{:?}",
+        dijkstra
+            .shortest_path_to(graph.data.len() - 1)
+            .into_iter()
+            .map(|idx| (idx / graph.width, idx % graph.width))
+            .collect::<Vec<_>>()
+    );
 
     challenge.finish(0);
 }
