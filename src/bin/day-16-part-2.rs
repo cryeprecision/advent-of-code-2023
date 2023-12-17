@@ -95,7 +95,7 @@ impl Beam {
             Dir::Right if self.pos % field.width != field.width - 1 => {
                 Some(Beam::new(self.pos + 1, self.dir))
             }
-            _ => return None,
+            _ => None,
         }
     }
 
