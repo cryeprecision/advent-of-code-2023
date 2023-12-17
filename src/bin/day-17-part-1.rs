@@ -2,6 +2,7 @@ use std::fmt::Write;
 
 use smallvec::SmallVec;
 
+#[derive(Clone)]
 struct Graph {
     data: Vec<u8>,
     width: usize,
@@ -142,6 +143,26 @@ impl std::fmt::Debug for Dijkstra<'_> {
     }
 }
 
+impl Dijkstra<'_> {
+    fn path(&self) -> Graph {
+        let mut path = vec![b'_'; self.graph.data.len()];
+
+        let mut prev = self.graph.data.len() - 1;
+        path[prev] = b'X';
+
+        while let Some(next_prev) = self.prev[prev] {
+            path[prev] = b'X';
+            prev = next_prev;
+        }
+        path[prev] = b'X';
+
+        Graph {
+            data: path,
+            width: self.graph.width,
+        }
+    }
+}
+
 fn dijkstra(graph: &Graph, start: usize) -> Dijkstra {
     // Run Dijkstra's algorithm on the graph G = (V, E) but since we have vertex weights and need
     // edge weights, we need to define a custom weight function for edges as follows
@@ -212,7 +233,9 @@ fn main() {
     println!("{:?}\n\n", graph);
 
     let dijkstra = dijkstra(&graph, 0);
-    println!("{:?}", dijkstra);
+    println!("{:?}\n\n", dijkstra);
+
+    println!("{:?}", dijkstra.path());
 
     challenge.finish(0);
 }
