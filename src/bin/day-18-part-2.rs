@@ -51,7 +51,7 @@ fn main() {
             pos = new_pos;
         });
 
-        // translate points
+        // translate points such that all coordinates are >=0
         points.iter_mut().for_each(|point| {
             point.0 -= mins.0;
             point.1 -= mins.1;
