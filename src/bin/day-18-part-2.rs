@@ -13,20 +13,20 @@ struct Op {
 }
 
 fn main() {
-    let challenge = advent_of_code_2023::Challenge::start(18, 1);
+    let challenge = advent_of_code_2023::Challenge::start(18, 2);
 
     let ops = challenge.input_lines().map(|line| {
-        let (dir, line) = line.split_once(' ').unwrap();
-        let (num, _) = line.split_once(' ').unwrap();
+        let (_, line) = line.split_once(' ').unwrap();
+        let (_, num_dir) = line.split_once(' ').unwrap(); // (#7a21e3)
 
-        let dir = match dir.as_bytes()[0] {
-            b'U' => Dir::Up,
-            b'D' => Dir::Down,
-            b'L' => Dir::Left,
-            b'R' => Dir::Right,
+        let num = i64::from_str_radix(&num_dir[2..7], 16).unwrap();
+        let dir = match num_dir.as_bytes()[7] {
+            b'3' => Dir::Up,
+            b'1' => Dir::Down,
+            b'2' => Dir::Left,
+            b'0' => Dir::Right,
             _ => panic!(),
         };
-        let num = num.parse::<i64>().unwrap();
 
         Op { dir, num }
     });
