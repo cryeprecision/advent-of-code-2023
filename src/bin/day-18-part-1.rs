@@ -89,5 +89,8 @@ fn main() {
         .windows(2)
         .fold(path_len_rem, |acc, next| acc + point_dist(next[0], next[1]));
 
-    challenge.finish((double_area + path_len) / 2 + 1);
+    // https://en.wikipedia.org/wiki/Pick%27s_theorem
+    let interior_points = (double_area / 2) - (path_len / 2) + 1;
+
+    challenge.finish(interior_points + path_len);
 }
