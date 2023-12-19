@@ -68,14 +68,15 @@ impl Workflow {
     fn check(&self, part: Part) -> Result<&'static str, bool> {
         for check in &self.checks {
             match check.passes(part) {
-                Some("R") => todo!(),
-                Some("A") => todo!(),
-                _ => todo!(),
+                Some("R") => return Err(false),
+                Some("A") => return Err(true),
+                Some(next) => return Ok(next),
+                None => (),
             }
         }
         match self.no_match {
-            "R" => todo!(),
-            "A" => todo!(),
+            "R" => Err(false),
+            "A" => Err(true),
             _ => Ok(self.no_match),
         }
     }
@@ -114,7 +115,12 @@ impl Workflows {
 
     fn is_accepted(&self, part: Part) -> bool {
         let mut current = self.get("in").unwrap();
-        todo!()
+        loop {
+            match current.check(part) {
+                Ok(next) => current = self.get(next).unwrap(),
+                Err(accepted) => return accepted,
+            }
+        }
     }
 }
 
@@ -182,5 +188,11 @@ fn main() {
 
     challenge.finish_parsing();
 
-    challenge.finish(0);
+    let solution = parts
+        .iter()
+        .filter(|&&part| workflows.is_accepted(part))
+        .map(|part| part.cool as u64 + part.musical as u64 + part.aero as u64 + part.shiny as u64)
+        .sum::<u64>();
+
+    challenge.finish(solution);
 }
