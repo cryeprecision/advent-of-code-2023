@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::hash::{Hash, Hasher};
+
 #[derive(Debug, Clone, Copy)]
 struct Part {
     cool: u16,
@@ -34,7 +36,7 @@ enum CheckOp {
 }
 
 impl CheckOp {
-    fn check(self, value: u16) -> bool {
+    fn passes(self, value: u16) -> bool {
         match self {
             CheckOp::LessThan(n) => value < n,
             CheckOp::GreaterThan(n) => value > n,
@@ -50,17 +52,70 @@ struct Check {
 }
 
 impl Check {
-    fn check(self, part: Part) -> Option<&'static str> {
+    fn passes(self, part: Part) -> Option<&'static str> {
         let value = self.prop.get(part);
-        self.op.check(value).then_some(self.dst)
+        self.op.passes(value).then_some(self.dst)
     }
 }
 
 #[derive(Debug, Clone)]
 struct Workflow {
-    name: &'static str,
     checks: Vec<Check>,
     no_match: &'static str,
+}
+
+impl Workflow {
+    fn check(&self, part: Part) -> Result<&'static str, bool> {
+        for check in &self.checks {
+            match check.passes(part) {
+                Some("R") => todo!(),
+                Some("A") => todo!(),
+                _ => todo!(),
+            }
+        }
+        match self.no_match {
+            "R" => todo!(),
+            "A" => todo!(),
+            _ => Ok(self.no_match),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Workflows {
+    inner: Vec<(u64, Workflow)>,
+}
+
+fn hash_name(name: &str) -> u64 {
+    let mut hasher = std::hash::DefaultHasher::new();
+    name.hash(&mut hasher);
+    hasher.finish()
+}
+
+impl Workflows {
+    fn new() -> Workflows {
+        Workflows { inner: Vec::new() }
+    }
+
+    fn push(&mut self, name: &'static str, workflow: Workflow) {
+        let hash = hash_name(name);
+        let idx = self
+            .inner
+            .binary_search_by_key(&hash, |&(hash, _)| hash)
+            .unwrap_err();
+        self.inner.insert(idx, (hash, workflow));
+    }
+    fn get(&self, name: &'static str) -> Option<&Workflow> {
+        self.inner
+            .binary_search_by_key(&hash_name(name), |&(hash, _)| hash)
+            .ok()
+            .map(|idx| &self.inner[idx].1)
+    }
+
+    fn is_accepted(&self, part: Part) -> bool {
+        let mut current = self.get("in").unwrap();
+        todo!()
+    }
 }
 
 fn main() {
@@ -69,7 +124,7 @@ fn main() {
     let (workflows, parts) = {
         let mut lines = challenge.input_lines();
 
-        let mut workflows = Vec::new();
+        let mut workflows = Workflows::new();
         for line in lines.by_ref() {
             if line.is_empty() {
                 // workflows and parts are separated by an empty line
@@ -106,11 +161,7 @@ fn main() {
                 })
                 .collect::<Vec<_>>();
 
-            workflows.push(Workflow {
-                name,
-                checks,
-                no_match,
-            });
+            workflows.push(name, Workflow { checks, no_match });
         }
 
         let mut parts = Vec::new();
@@ -130,11 +181,6 @@ fn main() {
     };
 
     challenge.finish_parsing();
-
-    workflows
-        .iter()
-        .for_each(|workflow| println!("{:?}", workflow));
-    parts.iter().for_each(|part| println!("{:?}", part));
 
     challenge.finish(0);
 }
