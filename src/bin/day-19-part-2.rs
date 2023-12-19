@@ -255,18 +255,24 @@ fn main() {
 
     let final_range = ranges
         .iter()
-        .fold(PartRange::new(), |acc, (_, next)| PartRange {
-            cool: intersect_ranges(acc.cool, next.cool.clone()),
-            musical: intersect_ranges(acc.musical, next.musical.clone()),
-            aero: intersect_ranges(acc.aero, next.aero.clone()),
-            shiny: intersect_ranges(acc.shiny, next.shiny.clone()),
-        });
+        .map(|(_, range)| {
+            range.cool.as_ref().map(|r| r.len()).unwrap_or(0)
+                * range.musical.as_ref().map(|r| r.len()).unwrap_or(0)
+                * range.aero.as_ref().map(|r| r.len()).unwrap_or(0)
+                * range.shiny.as_ref().map(|r| r.len()).unwrap_or(0)
+        })
+        .sum::<usize>();
 
-    // not quite right
-    let solution = final_range.cool.map(|r| r.len()).unwrap_or(1)
-        * final_range.musical.map(|r| r.len()).unwrap_or(1)
-        * final_range.aero.map(|r| r.len()).unwrap_or(1)
-        * final_range.shiny.map(|r| r.len()).unwrap_or(1);
+    for range in &ranges {
+        println!(
+            "{:?} -> {:?}, {:?}, {:?}, {:?}",
+            range.1,
+            range.1.cool.as_ref().map(|r| r.len()),
+            range.1.musical.as_ref().map(|r| r.len()),
+            range.1.aero.as_ref().map(|r| r.len()),
+            range.1.shiny.as_ref().map(|r| r.len()),
+        );
+    }
 
-    challenge.finish(solution);
+    challenge.finish(final_range);
 }
