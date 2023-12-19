@@ -5,6 +5,19 @@ use std::{
     ops::Range,
 };
 
+fn intersect_ranges(lhs: Option<Range<u16>>, rhs: Option<Range<u16>>) -> Option<Range<u16>> {
+    let (lhs, rhs) = (lhs?, rhs?);
+
+    let start = lhs.start.max(rhs.start);
+    let end = lhs.end.min(rhs.end);
+
+    if start >= end {
+        None
+    } else {
+        Some(start..end)
+    }
+}
+
 #[derive(Debug, Clone)]
 struct PartRange {
     cool: Option<Range<u16>>,
@@ -85,14 +98,17 @@ impl CheckOp {
 
 #[derive(Debug, Clone, Copy)]
 struct Check {
+    /// Which property this check applies to
     prop: Property,
+    /// Which kind of check is this
     op: CheckOp,
+    /// Next workflow, if the check passes
     dst: &'static str,
 }
 
 impl Check {
-    /// Split into passing and not passing part ranges `[passing, non-passing]`
-    fn split(self, part: &PartRange) -> [PartRange; 2] {
+    /// Split into passing and not passing part ranges `((passing, dst), non_passing)`
+    fn split_range(self, part: &PartRange) -> [PartRange; 2] {
         let passing_range = self
             .prop
             .get(part)
@@ -116,20 +132,15 @@ struct Workflow {
 }
 
 impl Workflow {
-    fn check(&self, part: &PartRange) -> Result<&'static str, bool> {
+    fn process_range(&self, mut range: PartRange) -> Vec<(&'static str, PartRange)> {
+        let mut parts: Vec<(&'static str, PartRange)> = Vec::new();
         for check in &self.checks {
-            match check.passing_subrange(part) {
-                Some("R") => return Err(false),
-                Some("A") => return Err(true),
-                Some(next) => return Ok(next),
-                None => (),
-            }
+            let [passing, non_passing] = check.split_range(&range);
+            parts.push((check.dst, passing));
+            range = non_passing;
         }
-        match self.no_match {
-            "R" => Err(false),
-            "A" => Err(true),
-            _ => Ok(self.no_match),
-        }
+        parts.push((self.no_match, range));
+        parts
     }
 }
 
@@ -149,7 +160,7 @@ impl Workflows {
         Workflows { inner: Vec::new() }
     }
 
-    fn push(&mut self, name: &'static str, workflow: Workflow) {
+    fn push(&mut self, name: &str, workflow: Workflow) {
         let hash = hash_name(name);
         let idx = self
             .inner
@@ -157,21 +168,36 @@ impl Workflows {
             .unwrap_err();
         self.inner.insert(idx, (hash, workflow));
     }
-    fn get(&self, name: &'static str) -> Option<&Workflow> {
+    fn get(&self, name: &str) -> Option<&Workflow> {
         self.inner
             .binary_search_by_key(&hash_name(name), |&(hash, _)| hash)
             .ok()
             .map(|idx| &self.inner[idx].1)
     }
 
-    fn is_accepted(&self, part: &PartRange) -> bool {
-        let mut current = self.get("in").unwrap();
-        loop {
-            match current.check(part) {
-                Ok(next) => current = self.get(next).unwrap(),
-                Err(accepted) => return accepted,
-            }
+    fn process_range(&self, range: PartRange) -> Vec<(&'static str, PartRange)> {
+        let mut ranges = self.get("in").unwrap().process_range(range);
+
+        // find the next part range to process, remove it from the queue and return it
+        fn pop_range(
+            ranges: &mut Vec<(&'static str, PartRange)>,
+        ) -> Option<(&'static str, PartRange)> {
+            let idx = ranges
+                .iter()
+                .position(|&(name, _)| name != "R" && name != "A")?;
+            Some(ranges.remove(idx))
         }
+
+        println!("ranges:");
+        ranges.iter().for_each(|r| println!("\t{:?}", r));
+        while let Some((next_name, next_range)) = pop_range(&mut ranges) {
+            let next_ranges = self.get(next_name).unwrap().process_range(next_range);
+            ranges.extend_from_slice(&next_ranges);
+            println!("ranges:");
+            ranges.iter().for_each(|r| println!("\t{:?}", r));
+        }
+
+        ranges
     }
 }
 
@@ -222,5 +248,25 @@ fn main() {
     };
     challenge.finish_parsing();
 
-    challenge.finish(0);
+    let mut ranges = workflows.process_range(PartRange::new());
+
+    // only keep ranges for accepted items
+    ranges.retain(|range| range.0 == "A");
+
+    let final_range = ranges
+        .iter()
+        .fold(PartRange::new(), |acc, (_, next)| PartRange {
+            cool: intersect_ranges(acc.cool, next.cool.clone()),
+            musical: intersect_ranges(acc.musical, next.musical.clone()),
+            aero: intersect_ranges(acc.aero, next.aero.clone()),
+            shiny: intersect_ranges(acc.shiny, next.shiny.clone()),
+        });
+
+    // not quite right
+    let solution = final_range.cool.map(|r| r.len()).unwrap_or(1)
+        * final_range.musical.map(|r| r.len()).unwrap_or(1)
+        * final_range.aero.map(|r| r.len()).unwrap_or(1)
+        * final_range.shiny.map(|r| r.len()).unwrap_or(1);
+
+    challenge.finish(solution);
 }
