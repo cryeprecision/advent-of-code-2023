@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone, Copy)]
@@ -31,11 +29,14 @@ impl Property {
 
 #[derive(Debug, Clone, Copy)]
 enum CheckOp {
+    /// Passes every value that is strictly less than
     LessThan(u16),
+    /// Passes every value that is strictly greater than
     GreaterThan(u16),
 }
 
 impl CheckOp {
+    /// Check if `value` passes this check
     fn passes(self, value: u16) -> bool {
         match self {
             CheckOp::LessThan(n) => value < n,
@@ -46,12 +47,16 @@ impl CheckOp {
 
 #[derive(Debug, Clone, Copy)]
 struct Check {
+    /// Which property this check applies to
     prop: Property,
+    /// Which kind of check this is
     op: CheckOp,
+    /// Next workflow, if the check passes
     dst: &'static str,
 }
 
 impl Check {
+    /// Check if `part` passes this check and return the next workflow if it does
     fn passes(self, part: Part) -> Option<&'static str> {
         let value = self.prop.get(part);
         self.op.passes(value).then_some(self.dst)
@@ -71,7 +76,7 @@ impl Workflow {
                 Some("R") => return Err(false),
                 Some("A") => return Err(true),
                 Some(next) => return Ok(next),
-                None => (),
+                None => continue,
             }
         }
         match self.no_match {
@@ -137,7 +142,7 @@ fn main() {
                 break;
             }
 
-            // px{a<2006:qkq,m>2090:A,rfg}
+            // parse `px{a<2006:qkq,m>2090:A,rfg}`
             let (name, line) = line.split_once('{').unwrap();
             let mut checks = line[..line.len() - 1].split(',').collect::<Vec<_>>();
             let no_match = checks.pop().unwrap();
@@ -145,7 +150,7 @@ fn main() {
             let checks = checks
                 .into_iter()
                 .map(|check| {
-                    // a<2006:qkq
+                    // parse `a<2006:qkq`
                     let (check, dst) = check.split_once(':').unwrap();
 
                     let prop = match check.as_bytes()[0] {
@@ -172,7 +177,7 @@ fn main() {
 
         let mut parts = Vec::new();
         for line in lines {
-            // {x=787,m=2655,a=1222,s=2876}
+            // parse `{x=787,m=2655,a=1222,s=2876}`
             let mut properties = line[1..line.len() - 1].split(',');
 
             parts.push(Part {
@@ -185,7 +190,6 @@ fn main() {
 
         (workflows, parts)
     };
-
     challenge.finish_parsing();
 
     let solution = parts

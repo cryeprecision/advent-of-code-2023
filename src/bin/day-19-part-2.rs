@@ -1,22 +1,7 @@
-#![allow(dead_code)]
-
 use std::{
     hash::{Hash, Hasher},
     ops::Range,
 };
-
-fn intersect_ranges(lhs: Option<Range<u16>>, rhs: Option<Range<u16>>) -> Option<Range<u16>> {
-    let (lhs, rhs) = (lhs?, rhs?);
-
-    let start = lhs.start.max(rhs.start);
-    let end = lhs.end.min(rhs.end);
-
-    if start >= end {
-        None
-    } else {
-        Some(start..end)
-    }
-}
 
 #[derive(Debug, Clone)]
 struct PartRange {
@@ -34,9 +19,6 @@ impl PartRange {
             aero: Some(1..4001),
             shiny: Some(1..4001),
         }
-    }
-    fn is_empty(&self) -> bool {
-        self.cool.is_none() && self.musical.is_none() && self.aero.is_none() && self.shiny.is_none()
     }
 }
 
@@ -78,6 +60,7 @@ enum CheckOp {
 }
 
 impl CheckOp {
+    /// Return the part of the range that passes this check
     fn passing_subrange(self, range: &Range<u16>) -> Option<Range<u16>> {
         match self {
             CheckOp::LessThan(n) if range.start >= n => None,
@@ -86,6 +69,8 @@ impl CheckOp {
             CheckOp::GreaterThan(n) => Some((n + 1)..range.end),
         }
     }
+
+    /// Return the part of the range that doesn't pass this check
     fn non_passing_subrange(self, range: &Range<u16>) -> Option<Range<u16>> {
         match self {
             // does not pass anything greater or equal to n
@@ -100,7 +85,7 @@ impl CheckOp {
 struct Check {
     /// Which property this check applies to
     prop: Property,
-    /// Which kind of check is this
+    /// Which kind of check this is
     op: CheckOp,
     /// Next workflow, if the check passes
     dst: &'static str,
@@ -132,15 +117,13 @@ struct Workflow {
 }
 
 impl Workflow {
-    fn process_range(&self, mut range: PartRange) -> Vec<(&'static str, PartRange)> {
-        let mut parts: Vec<(&'static str, PartRange)> = Vec::new();
+    fn process_range(&self, mut range: PartRange, queue: &mut Vec<(&'static str, PartRange)>) {
         for check in &self.checks {
             let [passing, non_passing] = check.split_range(&range);
-            parts.push((check.dst, passing));
+            queue.push((check.dst, passing));
             range = non_passing;
         }
-        parts.push((self.no_match, range));
-        parts
+        queue.push((self.no_match, range));
     }
 }
 
@@ -175,8 +158,11 @@ impl Workflows {
             .map(|idx| &self.inner[idx].1)
     }
 
-    fn process_range(&self, range: PartRange) -> Vec<(&'static str, PartRange)> {
-        let mut ranges = self.get("in").unwrap().process_range(range);
+    /// Process ranges and return final ranges with partition point `p`.
+    /// All elements in `[..p]` are accepted and all in `[p..]` are rejected.
+    fn process_range(&self, range: PartRange) -> (Vec<PartRange>, usize) {
+        let mut queue = Vec::new();
+        self.get("in").unwrap().process_range(range, &mut queue);
 
         // find the next part range to process, remove it from the queue and return it
         fn pop_range(
@@ -188,16 +174,20 @@ impl Workflows {
             Some(ranges.remove(idx))
         }
 
-        println!("ranges:");
-        ranges.iter().for_each(|r| println!("\t{:?}", r));
-        while let Some((next_name, next_range)) = pop_range(&mut ranges) {
-            let next_ranges = self.get(next_name).unwrap().process_range(next_range);
-            ranges.extend_from_slice(&next_ranges);
-            println!("ranges:");
-            ranges.iter().for_each(|r| println!("\t{:?}", r));
+        while let Some((next_name, next_range)) = pop_range(&mut queue) {
+            self.get(next_name)
+                .unwrap()
+                .process_range(next_range, &mut queue);
         }
 
-        ranges
+        // sort and determine partition point
+        queue.sort_unstable_by_key(|&(name, _)| name);
+        let partition_point = queue.partition_point(|&(name, _)| name == "A");
+
+        // omit names of workstations as they can be inferred
+        let queue = queue.into_iter().map(|(_, range)| range).collect();
+
+        (queue, partition_point)
     }
 }
 
@@ -212,7 +202,7 @@ fn main() {
                 break;
             }
 
-            // px{a<2006:qkq,m>2090:A,rfg}
+            // parse `px{a<2006:qkq,m>2090:A,rfg}`
             let (name, line) = line.split_once('{').unwrap();
             let mut checks = line[..line.len() - 1].split(',').collect::<Vec<_>>();
             let no_match = checks.pop().unwrap();
@@ -220,7 +210,7 @@ fn main() {
             let checks = checks
                 .into_iter()
                 .map(|check| {
-                    // a<2006:qkq
+                    // parse `a<2006:qkq`
                     let (check, dst) = check.split_once(':').unwrap();
 
                     let prop = match check.as_bytes()[0] {
@@ -248,14 +238,11 @@ fn main() {
     };
     challenge.finish_parsing();
 
-    let mut ranges = workflows.process_range(PartRange::new());
+    let (ranges, partition_point) = workflows.process_range(PartRange::new());
 
-    // only keep ranges for accepted items
-    ranges.retain(|range| range.0 == "A");
-
-    let final_range = ranges
+    let solution = ranges[..partition_point]
         .iter()
-        .map(|(_, range)| {
+        .map(|range| {
             range.cool.as_ref().map(|r| r.len()).unwrap_or(0)
                 * range.musical.as_ref().map(|r| r.len()).unwrap_or(0)
                 * range.aero.as_ref().map(|r| r.len()).unwrap_or(0)
@@ -263,16 +250,5 @@ fn main() {
         })
         .sum::<usize>();
 
-    for range in &ranges {
-        println!(
-            "{:?} -> {:?}, {:?}, {:?}, {:?}",
-            range.1,
-            range.1.cool.as_ref().map(|r| r.len()),
-            range.1.musical.as_ref().map(|r| r.len()),
-            range.1.aero.as_ref().map(|r| r.len()),
-            range.1.shiny.as_ref().map(|r| r.len()),
-        );
-    }
-
-    challenge.finish(final_range);
+    challenge.finish(solution);
 }
