@@ -22,7 +22,12 @@ impl Graph {
     }
 
     /// Returns `[Up, Down, Left, Right]`
-    fn neighbors(&self, pos: usize, streak: Option<Dir>) -> [Option<usize>; 4] {
+    fn neighbors(
+        &self,
+        pos: usize,
+        streak: Option<Dir>,
+        last_dir: Option<Dir>,
+    ) -> [Option<usize>; 4] {
         let mut neighbors = [
             Dir::Up.move_point(pos, self),
             Dir::Down.move_point(pos, self),
@@ -35,6 +40,13 @@ impl Graph {
             Some(Dir::Down) => neighbors[1] = None,
             Some(Dir::Left) => neighbors[2] = None,
             Some(Dir::Right) => neighbors[3] = None,
+        }
+        match last_dir {
+            None => (),
+            Some(Dir::Up) => neighbors[1] = None,
+            Some(Dir::Down) => neighbors[0] = None,
+            Some(Dir::Left) => neighbors[3] = None,
+            Some(Dir::Right) => neighbors[2] = None,
         }
         neighbors
     }
@@ -76,7 +88,8 @@ impl Graph {
         prev: &[Option<usize>],
     ) -> SmallVec<[usize; 4]> {
         let streak = self.has_streak(vertex, prev);
-        self.neighbors(vertex, streak)
+        let last_dir = prev[vertex].and_then(|prev| self.dir_to(prev, vertex));
+        self.neighbors(vertex, streak, last_dir)
             .into_iter()
             .filter_map(|neighbor| match neighbor {
                 None => None,
