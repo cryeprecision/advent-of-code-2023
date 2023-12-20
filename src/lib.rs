@@ -70,10 +70,11 @@ impl Challenge {
                         part_1: Some(part_1),
                         part_2: Some(part_2),
                     },
-                    None => Solution {
+                    None if !line.is_empty() => Solution {
                         part_1: Some(line),
                         part_2: None,
                     },
+                    None => Solution::default(),
                 }
             })
             .unwrap_or_default();
