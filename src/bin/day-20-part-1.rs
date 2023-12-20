@@ -60,6 +60,35 @@ impl Module {
             Module::Broadcaster { outputs, .. } => outputs,
         }
     }
+    fn process_pulse(&mut self, pulse_state: PulseState, buffer: &mut Vec<PulseState>) {
+        match self {
+            Module::FlipFlop { state, outputs, .. } => match (pulse_state.pulse, *state) {
+                (Pulse::Low, _) => todo!(),
+                (Pulse::High, false) => {
+                    *state = true;
+                    buffer.extend(outputs.iter().map(|output| PulseState {
+                        module: output,
+                        pulse: Pulse::High,
+                    }));
+                }
+                (Pulse::High, true) => {
+                    *state = false;
+                    buffer.extend(outputs.iter().map(|output| PulseState {
+                        module: output,
+                        pulse: Pulse::Low,
+                    }));
+                }
+            },
+            Module::Conjunction {
+                inputs, outputs, ..
+            } => {
+                todo!()
+            }
+            Module::Broadcaster { outputs, .. } => {
+                todo!();
+            }
+        }
+    }
 }
 
 impl std::hash::Hash for Module {
