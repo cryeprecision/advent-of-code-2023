@@ -111,6 +111,42 @@ impl std::hash::Hash for Module {
     }
 }
 
+/// A pulse that is currently being *received* by a module.
+///
+/// # Examples
+///
+/// ## Example I
+///
+/// ```txt
+/// button -low-> broadcaster
+/// ```
+///
+/// Is represented as
+///
+/// ```txt
+/// [
+///   { broadcaster, low },
+/// ]
+/// ```
+///
+/// ## Example II
+///
+/// ```txt
+/// broadcaster -low-> a
+/// broadcaster -low-> b
+/// broadcaster -low-> c
+/// ```
+///
+/// Is represented as
+///
+/// ```txt
+/// [
+///   { low, a },
+///   { low, b },
+///   { low, c },
+/// ]
+/// ```
+///
 #[derive(Debug)]
 struct PulseState {
     module: Name,
