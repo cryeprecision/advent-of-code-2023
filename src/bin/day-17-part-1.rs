@@ -1,4 +1,6 @@
-use std::fmt::Write;
+#![feature(iter_map_windows)]
+
+use std::{collections::VecDeque, fmt::Write};
 
 use smallvec::SmallVec;
 
@@ -18,17 +20,63 @@ impl Graph {
     fn height(&self) -> usize {
         self.data.len() / self.width
     }
+
     /// Returns `[Up, Down, Left, Right]`
-    fn neighbors(&self, pos: usize) -> [Option<usize>; 4] {
-        [
+    fn neighbors(&self, pos: usize, streak: Option<Dir>) -> [Option<usize>; 4] {
+        let mut neighbors = [
             Dir::Up.move_point(pos, self),
             Dir::Down.move_point(pos, self),
             Dir::Left.move_point(pos, self),
             Dir::Right.move_point(pos, self),
-        ]
+        ];
+        match streak {
+            None => (),
+            Some(Dir::Up) => neighbors[0] = None,
+            Some(Dir::Down) => neighbors[1] = None,
+            Some(Dir::Left) => neighbors[2] = None,
+            Some(Dir::Right) => neighbors[3] = None,
+        }
+        neighbors
     }
-    fn neighbors_in_queue(&self, queue: &[usize], vertex: usize) -> SmallVec<[usize; 4]> {
-        self.neighbors(vertex)
+
+    /// Return an arrow character pointing from `from` to `to`
+    fn dir_to(&self, from: usize, to: usize) -> Option<Dir> {
+        if from + 1 == to {
+            Some(Dir::Right)
+        } else if from == to + 1 {
+            Some(Dir::Left)
+        } else if from + self.width == to {
+            Some(Dir::Down)
+        } else if from == to + self.width {
+            Some(Dir::Up)
+        } else {
+            None
+        }
+    }
+
+    fn has_streak(&self, vertex: usize, prev: &[Option<usize>]) -> Option<Dir> {
+        let mut curr_prev = prev[vertex]?;
+        let first_dir = self.dir_to(curr_prev, vertex).unwrap();
+
+        for _ in 0..2 {
+            let tmp_prev = prev[curr_prev]?;
+            if self.dir_to(tmp_prev, curr_prev).unwrap() != first_dir {
+                return None;
+            }
+            curr_prev = prev[curr_prev]?;
+        }
+
+        Some(first_dir)
+    }
+
+    fn neighbors_in_queue(
+        &self,
+        vertex: usize,
+        queue: &[usize],
+        prev: &[Option<usize>],
+    ) -> SmallVec<[usize; 4]> {
+        let streak = self.has_streak(vertex, prev);
+        self.neighbors(vertex, streak)
             .into_iter()
             .filter_map(|neighbor| match neighbor {
                 None => None,
@@ -58,7 +106,7 @@ impl std::fmt::Debug for Graph {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Dir {
     Up,
     Down,
@@ -93,31 +141,14 @@ impl std::fmt::Debug for Dijkstra<'_> {
             if let Some(dist) = iter.next() {
                 write!(f, "{:>3}", dist)?;
                 for dist in iter {
-                    write!(f, " {:>3}", dist)?
+                    f.write_char(' ')?;
+                    write!(f, "{:>3}", dist)?
                 }
             }
             Ok(())
         };
 
-        let write_prev_row =
-            |f: &mut std::fmt::Formatter<'_>, row: &[Option<usize>]| -> std::fmt::Result {
-                let mut iter = row
-                    .iter()
-                    .map(|idx| idx.map(|idx| (idx / self.graph.width, idx % self.graph.width)));
-                if let Some(prev) = iter.next() {
-                    match prev {
-                        Some((row, col)) => write!(f, "[{:>2}, {:>2}]", row, col),
-                        None => write!(f, "[__, __]"),
-                    }?;
-                    for prev in iter {
-                        match prev {
-                            Some((row, col)) => write!(f, " [{:>2}, {:>2}]", row, col),
-                            None => write!(f, " [__, __]"),
-                        }?;
-                    }
-                }
-                Ok(())
-            };
+        f.write_str("[i] Distances:\n")?;
 
         let mut dist_rows = rows.clone();
         if let Some(row_idx) = dist_rows.next() {
@@ -128,14 +159,26 @@ impl std::fmt::Debug for Dijkstra<'_> {
             }
         }
 
-        f.write_str("\n\n")?;
+        f.write_str("\n\n[i] Previous Nodes:\n")?;
 
-        let mut prev_rows = rows.clone();
-        if let Some(row_idx) = prev_rows.next() {
-            write_prev_row(f, self.graph.row_of(&self.prev, row_idx))?;
-            for row_idx in prev_rows {
+        for row_idx in 0..self.graph.height() {
+            if row_idx != 0 {
                 f.write_char('\n')?;
-                write_prev_row(f, self.graph.row_of(&self.prev, row_idx))?;
+            }
+            for col_idx in 0..self.graph.width {
+                let idx = row_idx * self.graph.width + col_idx;
+                let prev_char = match self.prev[row_idx * self.graph.width + col_idx] {
+                    None => '_',
+                    Some(prev) if prev + 1 == idx => '←',
+                    Some(prev) if prev == idx + 1 => '→',
+                    Some(prev) if prev + self.graph.width == idx => '↑',
+                    Some(prev) if prev == idx + self.graph.width => '↓',
+                    _ => panic!("invalid neighbour"),
+                };
+                if col_idx != 0 {
+                    f.write_char(' ')?;
+                }
+                f.write_char(prev_char)?;
             }
         }
 
@@ -154,6 +197,7 @@ impl Dijkstra<'_> {
             width: self.graph.width,
         }
     }
+
     fn shortest_path_to(&self, vertex: usize) -> Vec<usize> {
         let Some(mut prev) = self.prev[vertex] else {
             return Vec::new();
@@ -204,7 +248,7 @@ fn dijkstra(graph: &Graph, start: usize) -> Dijkstra {
         let (vertex, vertex_dist) = pop_min_dist_vertex(&mut queue, &dist).unwrap();
 
         // for each neighbor v of u still in Q:
-        for neighbor in graph.neighbors_in_queue(&queue, vertex) {
+        for neighbor in graph.neighbors_in_queue(vertex, &queue, &prev) {
             // alt ← dist[u] + Graph.Edges(u, v)
             let alternative = vertex_dist + u32::from(graph.number_at(neighbor));
 
@@ -235,24 +279,28 @@ fn main() {
 
     challenge.finish_parsing();
 
+    let dijkstraa = dijkstra(&graph, 0);
+
     println!("{:?}\n\n", graph);
-
-    let dijkstra = dijkstra(&graph, 0);
-    println!("{:?}\n\n", dijkstra);
-
+    println!("{:?}\n\n", dijkstraa);
     println!(
         "{:?}\n\n",
-        dijkstra.debug_shortest_path_to(graph.data.len() - 1)
+        dijkstraa.debug_shortest_path_to(graph.data.len() - 1)
     );
-
     println!(
         "{:?}",
-        dijkstra
+        dijkstraa
             .shortest_path_to(graph.data.len() - 1)
             .into_iter()
             .map(|idx| (idx / graph.width, idx % graph.width))
             .collect::<Vec<_>>()
     );
 
-    challenge.finish(0);
+    let solution = dijkstraa
+        .shortest_path_to(graph.data.len() - 1)
+        .iter()
+        .map(|&vertex| graph.number_at(vertex) as u64)
+        .sum::<u64>();
+
+    challenge.finish(solution);
 }
