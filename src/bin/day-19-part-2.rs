@@ -168,10 +168,11 @@ impl Workflows {
         fn pop_range(
             ranges: &mut Vec<(&'static str, PartRange)>,
         ) -> Option<(&'static str, PartRange)> {
-            let idx = ranges
+            let idx_rev = ranges
                 .iter()
+                .rev() // pop from the back so fewer elements have to be moved
                 .position(|&(name, _)| name != "R" && name != "A")?;
-            Some(ranges.remove(idx))
+            Some(ranges.remove(ranges.len() - idx_rev - 1))
         }
 
         while let Some((next_name, next_range)) = pop_range(&mut queue) {
