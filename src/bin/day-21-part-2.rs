@@ -1,11 +1,9 @@
 use std::fmt::Write;
 
-use smallvec::SmallVec;
-
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 struct Pos {
     idx: usize,
-    tile: (i32, i32),
+    count: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -19,36 +17,42 @@ enum Dir {
 impl Dir {
     /// Move the point with wrap-around
     fn move_pos(self, pos: Pos, map: &Map) -> Pos {
-        let Pos { idx, tile } = pos;
+        let Pos { idx, count } = pos;
         match self {
             Dir::Up if idx >= map.width => Pos {
                 idx: idx - map.width,
-                tile,
+                count,
             },
             Dir::Up => Pos {
                 idx: map.data.len() - map.width + idx,
-                tile: (tile.0, tile.1 + 1),
+                count,
             },
 
             Dir::Down if idx < map.data.len() - map.width => Pos {
                 idx: idx + map.width,
-                tile,
+                count,
             },
             Dir::Down => Pos {
                 idx: idx - map.width * (map.height() - 1),
-                tile: (tile.0, tile.1 - 1),
+                count,
             },
 
-            Dir::Left if idx % map.width != 0 => Pos { idx: idx - 1, tile },
+            Dir::Left if idx % map.width != 0 => Pos {
+                idx: idx - 1,
+                count,
+            },
             Dir::Left => Pos {
                 idx: idx + (map.width - 1),
-                tile: (tile.0 - 1, tile.1),
+                count,
             },
 
-            Dir::Right if idx % map.width != map.width - 1 => Pos { idx: idx + 1, tile },
+            Dir::Right if idx % map.width != map.width - 1 => Pos {
+                idx: idx + 1,
+                count,
+            },
             Dir::Right => Pos {
                 idx: idx - (map.width - 1),
-                tile: (tile.0 + 1, tile.1),
+                count,
             },
         }
     }
@@ -64,9 +68,6 @@ impl Map {
     fn row(&self, row_idx: usize) -> &[u8] {
         &self.data[(row_idx * self.width)..((row_idx + 1) * self.width)]
     }
-    fn row_of<'a, T>(&self, other: &'a [T], row_idx: usize) -> &'a [T] {
-        &other[(row_idx * self.width)..((row_idx + 1) * self.width)]
-    }
     fn height(&self) -> usize {
         self.data.len() / self.width
     }
@@ -80,9 +81,11 @@ impl Map {
             })
             .filter_map(|new_pos| new_pos);
 
-        reachable.for_each(|new_pos| match new_pos_buf.binary_search(&new_pos) {
-            Ok(_) => (/* already in the list */),
-            Err(idx) => new_pos_buf.insert(idx, new_pos),
+        reachable.for_each(|new_pos| {
+            match new_pos_buf.binary_search_by_key(&new_pos.idx, |p| p.idx) {
+                Ok(idx) => new_pos_buf[idx].count += curr_pos.count,
+                Err(idx) => new_pos_buf.insert(idx, new_pos),
+            }
         });
     }
 }
@@ -119,7 +122,7 @@ fn main() {
 
     let mut positions = vec![Pos {
         idx: start_pos,
-        tile: (0, 0),
+        count: 1,
     }];
     let mut new_positions = vec![];
 
@@ -130,13 +133,6 @@ fn main() {
         }
         std::mem::swap(&mut positions, &mut new_positions);
 
-        // println!(
-        //     "[{:>3}] {:>6} ({:>3})",
-        //     i,
-        //     positions.len(),
-        //     positions.len() - prev_len
-        // );
-
         println!("\x1B[2J\x1B[1;1H");
         println!(
             "[i] {:>3}: positions: {} ({:>4})",
@@ -146,10 +142,7 @@ fn main() {
         );
 
         let mut dbg = map.clone();
-        positions
-            .iter()
-            .filter(|pos| pos.tile == (0, 0))
-            .for_each(|p| dbg.data[p.idx] = b'O');
+        positions.iter().for_each(|p| dbg.data[p.idx] = b'O');
         println!("[i] Map({}):\n{:?}\n", i, dbg);
 
         std::thread::sleep(std::time::Duration::from_millis(250));

@@ -1,7 +1,5 @@
 use std::fmt::Write;
 
-use smallvec::SmallVec;
-
 #[derive(Debug, Clone, Copy)]
 enum Dir {
     Up,
@@ -32,9 +30,6 @@ impl Map {
     fn row(&self, row_idx: usize) -> &[u8] {
         &self.data[(row_idx * self.width)..((row_idx + 1) * self.width)]
     }
-    fn row_of<'a, T>(&self, other: &'a [T], row_idx: usize) -> &'a [T] {
-        &other[(row_idx * self.width)..((row_idx + 1) * self.width)]
-    }
     fn height(&self) -> usize {
         self.data.len() / self.width
     }
@@ -44,7 +39,7 @@ impl Map {
             .into_iter()
             .map(|dir| {
                 dir.move_point(curr_pos, self)
-                    .and_then(|new_pos| (self.data[new_pos] == b'.').then_some(new_pos))
+                    .and_then(|new_pos| (self.data[new_pos] != b'#').then_some(new_pos))
             })
             .filter_map(|new_pos| new_pos);
 
@@ -95,7 +90,7 @@ fn main() {
         std::mem::swap(&mut positions, &mut new_positions);
     }
 
-    let solution = positions.len() + 1;
+    let solution = positions.len();
 
     challenge.finish(solution);
 }
