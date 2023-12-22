@@ -79,12 +79,10 @@ impl Module {
                     }));
                 }
             },
-            Module::Conjunction {
-                inputs, outputs, ..
-            } => {
+            Module::Conjunction { .. } => {
                 todo!()
             }
-            Module::Broadcaster { outputs, .. } => {
+            Module::Broadcaster { .. } => {
                 todo!();
             }
         }
